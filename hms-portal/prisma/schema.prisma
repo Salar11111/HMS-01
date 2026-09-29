@@ -1,0 +1,642 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  PATIENT
+  DOCTOR
+  NURSE
+  ADMIN
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum AdmissionStatus {
+  ADMITTED
+  OBSERVATION
+  DISCHARGED
+  TRANSFERRED
+}
+
+enum LabOrderStatus {
+  ORDERED
+  COLLECTED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum LabPriority {
+  ROUTINE
+  URGENT
+  STAT
+}
+
+enum PrescriptionStatus {
+  DRAFT
+  ACTIVE
+  DISPENSED
+  CANCELLED
+  EXPIRED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  ISSUED
+  PARTIALLY_PAID
+  PAID
+  OVERDUE
+  VOID
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  BANK_TRANSFER
+  INSURANCE
+}
+
+enum EquipmentStatus {
+  OPERATIONAL
+  MAINTENANCE
+  RETIRED
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model User {
+  id                String    @id @default(auto()) @map("_id") @db.ObjectId
+  email             String    @unique
+  name              String?
+  passwordHash      String?
+  role              Role      @default(PATIENT)
+  image             String?
+  emailVerified     DateTime?
+  notificationPrefs Json?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  patient   Patient?
+  doctor    Doctor?
+  nurse     Nurse?
+  admin     Admin?
+  accounts  Account[]
+  sessions  Session[]
+  auditLogs AuditLog[]
+
+  sentMessages     Message[]                  @relation("SentMessages")
+  receivedMessages Message[]                  @relation("ReceivedMessages")
+  notifications    Notification[]
+  recordedVitals   VitalSign[]                @relation("RecordedVitals")
+  nursingNotes     NursingNote[]              @relation("NursingNotes")
+  administeredMeds MedicationAdministration[]
+  requestedLeaves  LeaveRequest[]             @relation("LeaveRequester")
+  reviewedLeaves   LeaveRequest[]             @relation("LeaveReviewer")
+}
+
+model Account {
+  id                String  @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String  @db.ObjectId
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  sessionToken String   @unique
+  userId       String   @db.ObjectId
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Patient {
+  id                    String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId                String    @unique @db.ObjectId
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  medicalRecordNumber   String?   @unique
+  dateOfBirth           DateTime?
+  bloodGroup            String?
+  phone                 String?
+  address               String?
+  emergencyContact      String?
+  insuranceProvider     String?
+  insurancePolicyNumber String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  appointments     Appointment[]
+  medicalRecords   MedicalRecord[]
+  testResults      TestResult[]
+  admissions       Admission[]
+  labOrders        LabOrder[]
+  prescriptions    Prescription[]
+  invoices         Invoice[]
+  vitalSigns       VitalSign[]
+  nursingNotes     NursingNote[]
+  medicationsGiven MedicationAdministration[]
+  messages         Message[]
+}
+
+model Doctor {
+  id              String      @id @default(auto()) @map("_id") @db.ObjectId
+  userId          String      @unique @db.ObjectId
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  specialization  String?
+  licenseNumber   String      @unique
+  departmentId    String?     @db.ObjectId
+  department      Department? @relation(fields: [departmentId], references: [id])
+  consultationFee Float     @default(0)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  appointments   Appointment[]
+  medicalRecords MedicalRecord[]
+  schedules      Schedule[]
+  admissions     Admission[]
+  labOrders      LabOrder[]
+  prescriptions  Prescription[]
+}
+
+model Nurse {
+  id            String      @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String      @unique @db.ObjectId
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  departmentId  String?     @db.ObjectId
+  department    Department? @relation(fields: [departmentId], references: [id])
+  shift         String?
+  licenseNumber String?     @unique
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  schedules        Schedule[]
+  nursingNotes     NursingNote[]
+  vitalSigns       VitalSign[]
+  medicationsGiven MedicationAdministration[]
+}
+
+model Admin {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String   @unique @db.ObjectId
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permissions String[] @default(["billing", "inventory", "hr"])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Branch {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  code      String   @unique
+  address   String?
+  phone     String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  departments Department[]
+  wards       Ward[]
+}
+
+model Department {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String   @unique
+  description String?
+  location    String?
+  branchId    String?  @db.ObjectId
+  branch      Branch?  @relation(fields: [branchId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  doctors   Doctor[]
+  nurses    Nurse[]
+  inventory Inventory[]
+  wards     Ward[]
+}
+
+model Ward {
+  id           String      @id @default(auto()) @map("_id") @db.ObjectId
+  name         String
+  floor        String?
+  branchId     String?     @db.ObjectId
+  branch       Branch?     @relation(fields: [branchId], references: [id])
+  departmentId String?     @db.ObjectId
+  department   Department? @relation(fields: [departmentId], references: [id])
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  beds       Bed[]
+  admissions Admission[]
+}
+
+model Bed {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  wardId     String   @db.ObjectId
+  ward       Ward     @relation(fields: [wardId], references: [id], onDelete: Cascade)
+  number     String
+  bedType    String   @default("STANDARD")
+  isOccupied Boolean  @default(false)
+  dailyRate  Float  @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  admissions Admission[]
+
+  @@unique([wardId, number])
+}
+
+model Admission {
+  id           String          @id @default(auto()) @map("_id") @db.ObjectId
+  patientId    String          @db.ObjectId
+  patient      Patient         @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  bedId        String          @db.ObjectId
+  bed          Bed             @relation(fields: [bedId], references: [id], onDelete: Cascade)
+  doctorId     String?         @db.ObjectId
+  doctor       Doctor?         @relation(fields: [doctorId], references: [id])
+  status       AdmissionStatus @default(ADMITTED)
+  reason       String?
+  diagnosis    String?
+  admittedAt   DateTime        @default(now())
+  dischargedAt DateTime?
+  notes        String?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  ward         Ward?           @relation(fields: [wardId], references: [id], onDelete: SetNull)
+  wardId       String?         @db.ObjectId
+}
+
+model Appointment {
+  id          String            @id @default(auto()) @map("_id") @db.ObjectId
+  patientId   String            @db.ObjectId
+  patient     Patient           @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctorId    String            @db.ObjectId
+  doctor      Doctor            @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  scheduledAt DateTime
+  duration    Int               @default(30)
+  status      AppointmentStatus @default(SCHEDULED)
+  reason      String?
+  notes       String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  labOrders     LabOrder[]
+  prescriptions Prescription[]
+
+  @@index([patientId, scheduledAt])
+  @@index([doctorId, scheduledAt])
+}
+
+model MedicalRecord {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  patientId String   @db.ObjectId
+  patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctorId  String   @db.ObjectId
+  doctor    Doctor   @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  diagnosis String?
+  treatment String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TestResult {
+  id             String    @id @default(auto()) @map("_id") @db.ObjectId
+  patientId      String    @db.ObjectId
+  patient        Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  testName       String
+  result         String
+  referenceRange String?
+  status         String    @default("PENDING")
+  orderedBy      String?
+  performedAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+model LabOrder {
+  id            String         @id @default(auto()) @map("_id") @db.ObjectId
+  patientId     String         @db.ObjectId
+  patient       Patient        @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctorId      String         @db.ObjectId
+  doctor        Doctor         @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  appointmentId String?        @db.ObjectId
+  appointment   Appointment?   @relation(fields: [appointmentId], references: [id])
+  status        LabOrderStatus @default(ORDERED)
+  priority      LabPriority    @default(ROUTINE)
+  orderedAt     DateTime       @default(now())
+  completedAt   DateTime?
+  notes         String?
+
+  items LabOrderItem[]
+
+  @@index([patientId, status])
+  @@index([doctorId, status])
+}
+
+model LabOrderItem {
+  id             String    @id @default(auto()) @map("_id") @db.ObjectId
+  orderId        String    @db.ObjectId
+  order          LabOrder  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  testName       String
+  result         String?
+  unit           String?
+  referenceRange String?
+  flag           String?   @default("NORMAL")
+  performedAt    DateTime?
+}
+
+model Drug {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  name         String
+  genericName  String?
+  form         String
+  strength     String
+  unitCost     Float
+  reorderLevel Int      @default(20)
+  supplier     String?
+  isControlled Boolean  @default(false)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  batches           StockBatch[]
+  prescriptionItems PrescriptionItem[]
+}
+
+model StockBatch {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  drugId      String   @db.ObjectId
+  drug        Drug     @relation(fields: [drugId], references: [id], onDelete: Cascade)
+  batchNumber String
+  expiryDate  DateTime
+  quantity    Int      @default(0)
+  unitCost    Float
+  receivedAt  DateTime @default(now())
+
+  @@unique([drugId, batchNumber])
+}
+
+model Prescription {
+  id            String             @id @default(auto()) @map("_id") @db.ObjectId
+  patientId     String             @db.ObjectId
+  patient       Patient            @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  prescriberId  String             @db.ObjectId
+  prescriber    Doctor             @relation(fields: [prescriberId], references: [id], onDelete: Cascade)
+  appointmentId String?            @db.ObjectId
+  appointment   Appointment?       @relation(fields: [appointmentId], references: [id])
+  status        PrescriptionStatus @default(ACTIVE)
+  issuedAt      DateTime           @default(now())
+  expiresAt     DateTime?
+  notes         String?
+
+  items           PrescriptionItem[]
+  administrations MedicationAdministration[]
+}
+
+model PrescriptionItem {
+  id             String       @id @default(auto()) @map("_id") @db.ObjectId
+  prescriptionId String       @db.ObjectId
+  prescription   Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+  drugId         String       @db.ObjectId
+  drug           Drug         @relation(fields: [drugId], references: [id])
+  dosage         String
+  frequency      String
+  duration       String
+  quantity       Int          @default(1)
+  refillsLeft    Int          @default(0)
+}
+
+model Invoice {
+  id            String        @id @default(auto()) @map("_id") @db.ObjectId
+  patientId     String        @db.ObjectId
+  patient       Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  invoiceNumber String        @unique
+  status        InvoiceStatus @default(ISSUED)
+  totalAmount   Float       @default(0)
+  paidAmount    Float       @default(0)
+  issuedAt      DateTime      @default(now())
+  dueAt         DateTime?
+
+  items    InvoiceItem[]
+  payments Payment[]
+
+  @@index([patientId, issuedAt])
+}
+
+model InvoiceItem {
+  id          String  @id @default(auto()) @map("_id") @db.ObjectId
+  invoiceId   String  @db.ObjectId
+  invoice     Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  description String
+  category    String
+  quantity    Int     @default(1)
+  unitPrice   Float
+  amount      Float
+}
+
+model Payment {
+  id        String        @id @default(auto()) @map("_id") @db.ObjectId
+  invoiceId String        @db.ObjectId
+  invoice   Invoice       @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  amount    Float
+  method    PaymentMethod
+  reference String?
+  paidAt    DateTime      @default(now())
+}
+
+model VitalSign {
+  id               String   @id @default(auto()) @map("_id") @db.ObjectId
+  patientId        String   @db.ObjectId
+  patient          Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  recordedById     String   @db.ObjectId
+  recordedBy       User     @relation("RecordedVitals", fields: [recordedById], references: [id])
+  recordedAt       DateTime @default(now())
+  temperature      Float?
+  heartRate        Int?
+  systolic         Int?
+  diastolic        Int?
+  respiratoryRate  Int?
+  oxygenSaturation Int?
+  weightKg         Float?
+  painScore        Int?
+  notes            String?
+  nurse            Nurse?   @relation(fields: [nurseId], references: [id], onDelete: SetNull)
+  nurseId          String?  @db.ObjectId
+
+  @@index([patientId, recordedAt])
+}
+
+model NursingNote {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  patientId String   @db.ObjectId
+  patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  authorId  String   @db.ObjectId
+  author    User     @relation("NursingNotes", fields: [authorId], references: [id])
+  noteType  String   @default("PROGRESS")
+  content   String
+  createdAt DateTime @default(now())
+  nurse     Nurse?   @relation(fields: [nurseId], references: [id], onDelete: SetNull)
+  nurseId   String?  @db.ObjectId
+}
+
+model MedicationAdministration {
+  id             String        @id @default(auto()) @map("_id") @db.ObjectId
+  patientId      String        @db.ObjectId
+  patient        Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  nurseId        String        @db.ObjectId
+  nurse          Nurse         @relation(fields: [nurseId], references: [id], onDelete: Cascade)
+  administeredAt DateTime      @default(now())
+  drugName       String
+  dosage         String
+  status         String        @default("GIVEN")
+  notes          String?
+  prescriptionId String?       @db.ObjectId
+  prescription   Prescription? @relation(fields: [prescriptionId], references: [id], onDelete: SetNull)
+  user           User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId         String?       @db.ObjectId
+
+  @@index([patientId, administeredAt])
+}
+
+model Schedule {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  doctorId  String?  @db.ObjectId
+  doctor    Doctor?  @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  nurseId   String?  @db.ObjectId
+  nurse     Nurse?   @relation(fields: [nurseId], references: [id], onDelete: Cascade)
+  dayOfWeek Int
+  startTime String
+  endTime   String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Inventory {
+  id           String     @id @default(auto()) @map("_id") @db.ObjectId
+  departmentId String     @db.ObjectId
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  name         String
+  category     String
+  quantity     Int        @default(0)
+  unit         String
+  reorderLevel Int        @default(10)
+  unitCost     Float
+  supplier     String?
+  expiryDate   DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  equipment Equipment[]
+
+  @@unique([departmentId, name])
+}
+
+model Equipment {
+  id                String          @id @default(auto()) @map("_id") @db.ObjectId
+  inventoryId       String?         @db.ObjectId
+  inventory         Inventory?      @relation(fields: [inventoryId], references: [id])
+  assetTag          String          @unique
+  name              String
+  category          String
+  serialNumber      String?
+  location          String?
+  status            EquipmentStatus @default(OPERATIONAL)
+  purchaseDate      DateTime?
+  unitCost          Float?
+  lastMaintenanceAt DateTime?
+  nextMaintenanceAt DateTime?
+}
+
+model LeaveRequest {
+  id          String      @id @default(auto()) @map("_id") @db.ObjectId
+  requesterId String      @db.ObjectId
+  requester   User        @relation("LeaveRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  reviewerId  String?     @db.ObjectId
+  reviewer    User?       @relation("LeaveReviewer", fields: [reviewerId], references: [id])
+  type        String
+  startDate   DateTime
+  endDate     DateTime
+  reason      String?
+  status      LeaveStatus @default(PENDING)
+  createdAt   DateTime    @default(now())
+}
+
+model Message {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  senderId    String    @db.ObjectId
+  sender      User      @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  recipientId String    @db.ObjectId
+  recipient   User      @relation("ReceivedMessages", fields: [recipientId], references: [id], onDelete: Cascade)
+  patientId   String?   @db.ObjectId
+  patient     Patient?  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  subject     String
+  body        String
+  readAt      DateTime?
+  createdAt   DateTime  @default(now())
+}
+
+model Notification {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String    @db.ObjectId
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  body      String?
+  link      String?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action    String
+  entity    String
+  entityId  String?
+  oldData   String?
+  newData   String?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([entity, entityId])
+  @@index([createdAt])
+}
