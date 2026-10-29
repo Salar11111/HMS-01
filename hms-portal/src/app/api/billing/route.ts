@@ -1,6 +1,7 @@
 import { z } from "zod"
 import { prisma } from "@/lib/prisma"
-import { requireRole, withErrorHandling } from "@/server/authz"
+import { centsToDollars } from "@/lib/money"
+import { AuthError, requireRole, withErrorHandling } from "@/server/authz"
 
 const listSchema = z.object({
   status: z
@@ -11,6 +12,9 @@ const listSchema = z.object({
 
 export const GET = withErrorHandling(async (request: Request) => {
   const actor = await requireRole("PATIENT", "ADMIN")
+  if (actor.role === "PATIENT" && !actor.patientId) {
+    throw new AuthError("Your account is not linked to a patient record", 403)
+  }
   const url = new URL(request.url)
   const { status, take } = listSchema.parse(
     Object.fromEntries(url.searchParams.entries())
@@ -21,7 +25,7 @@ export const GET = withErrorHandling(async (request: Request) => {
     orderBy: { issuedAt: "desc" },
     where: {
       ...(status ? { status } : {}),
-      ...(actor.role === "PATIENT" ? { patientId: actor.patientId ?? "" } : {}),
+      ...(actor.role === "PATIENT" ? { patientId: actor.patientId } : {}),
     },
     include: {
       items: true,
@@ -32,7 +36,18 @@ export const GET = withErrorHandling(async (request: Request) => {
 
   const serialized = invoices.map(i => ({
     ...i,
-    balance: i.totalAmount - i.paidAmount,
+    totalAmount: centsToDollars(i.totalAmount),
+    paidAmount: centsToDollars(i.paidAmount),
+    balance: centsToDollars(i.totalAmount - i.paidAmount),
+    items: i.items.map(item => ({
+      ...item,
+      unitPrice: centsToDollars(item.unitPrice),
+      amount: centsToDollars(item.amount),
+    })),
+    payments: i.payments.map(payment => ({
+      ...payment,
+      amount: centsToDollars(payment.amount),
+    })),
   }))
 
   return Response.json({ invoices: serialized })

@@ -1,5 +1,8 @@
 "use client"
 
+import { Suspense } from "react"
+import Link from "next/link"
+import { useSearchParams } from "next/navigation"
 import { PortalLayout } from "@/app/portal/_components/PortalLayout"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card"
 import { DataTable, type Column } from "@/components/portal/DataTable"
@@ -15,7 +18,8 @@ const ageFrom = (dob: string | Date | null) => {
   return String(Math.floor((Date.now() - new Date(dob).getTime()) / (365.25 * 24 * 60 * 60 * 1000)))
 }
 
-export default function DoctorPatientsPage() {
+function DoctorPatientsContent() {
+  const focusId = useSearchParams().get("patientId")
   const { data, loading, error } = useDoctorPortal()
 
   if (loading) return <PortalLayout role="doctor"><PortalState loading /></PortalLayout>
@@ -31,6 +35,7 @@ export default function DoctorPatientsPage() {
       header: "Location",
       render: p => <span>{p.admitted ? `${p.wardName ?? "Ward"} · ${p.bedNumber ?? "bed"}` : "Outpatient"}</span>,
     },
+    { key: "chart", header: "Chart", render: p => <Link className="font-medium underline" href={`/portal/doctor/patients/${p.id}`}>Open</Link> },
   ]
 
   return (
@@ -40,10 +45,23 @@ export default function DoctorPatientsPage() {
         <Card>
           <CardHeader><CardTitle>Panel</CardTitle></CardHeader>
           <CardContent>
-            <DataTable columns={columns} rows={data.patients} rowKey={p => p.id} empty="No patients on the panel." />
+            <DataTable
+              columns={columns}
+              rows={focusId ? data.patients.filter(patient => patient.id === focusId) : data.patients}
+              rowKey={p => p.id}
+              empty="No patients on the panel."
+            />
           </CardContent>
         </Card>
       </div>
     </PortalLayout>
+  )
+}
+
+export default function DoctorPatientsPage() {
+  return (
+    <Suspense fallback={<PortalLayout role="doctor"><PortalState loading /></PortalLayout>}>
+      <DoctorPatientsContent />
+    </Suspense>
   )
 }

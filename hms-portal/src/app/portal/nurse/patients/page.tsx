@@ -1,5 +1,8 @@
 "use client"
 
+import { Suspense } from "react"
+import Link from "next/link"
+import { useSearchParams } from "next/navigation"
 import { PortalLayout } from "@/app/portal/_components/PortalLayout"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card"
 import { DataTable, type Column } from "@/components/portal/DataTable"
@@ -11,7 +14,8 @@ import { formatTime } from "@/lib/utils"
 
 type Patient = NursePortalData["patients"][number]
 
-export default function NursePatientsPage() {
+function NursePatientsContent() {
+  const focusId = useSearchParams().get("patientId")
   const { data, loading, error } = useNursePortal()
 
   if (loading) return <PortalLayout role="nurse"><PortalState loading /></PortalLayout>
@@ -24,6 +28,7 @@ export default function NursePatientsPage() {
     { key: "diagnosis", header: "Diagnosis", render: p => <span className="text-clay-600">{p.diagnosis ?? p.reason ?? "—"}</span> },
     { key: "doctor", header: "Attending", render: p => <span>{p.attendingDoctor ?? "—"}</span> },
     { key: "vitals", header: "Last vitals", render: p => <span>{p.lastVitalsAt ? formatTime(p.lastVitalsAt) : "—"}</span> },
+    { key: "chart", header: "Chart", render: p => <Link className="font-medium underline" href={`/portal/nurse/patients/${p.id}`}>Open</Link> },
   ]
 
   return (
@@ -33,10 +38,23 @@ export default function NursePatientsPage() {
         <Card>
           <CardHeader><CardTitle>Admitted patients</CardTitle></CardHeader>
           <CardContent>
-            <DataTable columns={columns} rows={data.patients} rowKey={p => p.id} empty="No patients are currently admitted." />
+            <DataTable
+              columns={columns}
+              rows={focusId ? data.patients.filter(patient => patient.id === focusId) : data.patients}
+              rowKey={p => p.id}
+              empty="No patients are currently admitted."
+            />
           </CardContent>
         </Card>
       </div>
     </PortalLayout>
+  )
+}
+
+export default function NursePatientsPage() {
+  return (
+    <Suspense fallback={<PortalLayout role="nurse"><PortalState loading /></PortalLayout>}>
+      <NursePatientsContent />
+    </Suspense>
   )
 }

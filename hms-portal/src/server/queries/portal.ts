@@ -1,4 +1,7 @@
 import { prisma } from "@/lib/prisma"
+import { centsToDollars } from "@/lib/money"
+import { hospitalDayBounds, hospitalMonthStart, hospitalYearMonth } from "@/lib/time"
+import { isCriticalVital } from "@/lib/vitals"
 import { doctorPatientIds } from "@/server/assignment"
 
 /**
@@ -9,8 +12,8 @@ import { doctorPatientIds } from "@/server/assignment"
  * routes wide while the pages keep simple `GET` calls, and it keeps every
  * scope decision auditable next to the queries it applies.
  *
- * Money and measurement fields are Prisma `Float` values. `Number()` keeps
- * the JSON payload as plain numbers for the portal pages.
+ * Invoice money is stored as integer cents and converted to dollars here.
+ * Measurement fields stay as recorded numbers.
  */
 
 /**
@@ -22,36 +25,9 @@ export type DoctorPortalData = Awaited<ReturnType<typeof buildDoctorPortal>>
 export type NursePortalData = Awaited<ReturnType<typeof buildNursePortal>>
 export type AdminPortalData = Awaited<ReturnType<typeof buildAdminPortal>>
 
-const startOfToday = () => {
-  const d = new Date()
-  d.setHours(0, 0, 0, 0)
-  return d
-}
+const startOfToday = () => hospitalDayBounds().start
 
-const endOfToday = () => {
-  const d = new Date()
-  d.setHours(23, 59, 59, 999)
-  return d
-}
-
-const isAbnormalVitals = (v: {
-  temperature: unknown
-  heartRate: number | null
-  systolic: number | null
-  diastolic: number | null
-  respiratoryRate?: number | null
-  oxygenSaturation: number | null
-}) => {
-  const temperature = v.temperature == null ? null : Number(v.temperature)
-  return (
-    (v.systolic != null && (v.systolic > 140 || v.systolic < 90)) ||
-    (v.diastolic != null && (v.diastolic > 90 || v.diastolic < 60)) ||
-    (v.heartRate != null && (v.heartRate > 100 || v.heartRate < 60)) ||
-    (v.oxygenSaturation != null && v.oxygenSaturation < 95) ||
-    (temperature != null && (temperature > 38 || temperature < 36)) ||
-    (v.respiratoryRate != null && (v.respiratoryRate > 20 || v.respiratoryRate < 10))
-  )
-}
+const endOfToday = () => hospitalDayBounds().end
 
 export async function buildPatientPortal(patientId: string) {
   const now = new Date()
@@ -145,6 +121,14 @@ export async function buildPatientPortal(patientId: string) {
     }),
   ])
 
+  const physicianRows = await prisma.doctor.findMany({
+    select: {
+      id: true,
+      specialization: true,
+      user: { select: { id: true, name: true } },
+    },
+  })
+
   return {
     profile: {
       id: profile.id,
@@ -167,12 +151,12 @@ export async function buildPatientPortal(patientId: string) {
       doctorName: a.doctor.user.name,
       doctorSpecialization: a.doctor.specialization,
       doctorImage: a.doctor.user.image,
-      consultationFee: a.doctor.consultationFee == null ? null : Number(a.doctor.consultationFee),
+      consultationFee: centsToDollars(a.doctor.consultationFee),
       scheduledAt: a.scheduledAt,
       duration: a.duration,
       status: a.status,
       reason: a.reason,
-      upcoming: a.scheduledAt >= now,
+      upcoming: a.scheduledAt >= now && a.status !== "CANCELLED" && a.status !== "NO_SHOW",
       withinWeek: a.scheduledAt <= weekAhead,
     })),
     vitals: vitals.map(v => ({
@@ -186,7 +170,7 @@ export async function buildPatientPortal(patientId: string) {
       oxygenSaturation: v.oxygenSaturation,
       painScore: v.painScore,
       recordedBy: v.nurse?.user.name ?? null,
-      abnormal: isAbnormalVitals(v),
+      abnormal: isCriticalVital(v),
     })),
     latestVitals: vitals[0]
       ? {
@@ -196,7 +180,7 @@ export async function buildPatientPortal(patientId: string) {
           diastolic: vitals[0].diastolic,
           oxygenSaturation: vitals[0].oxygenSaturation,
           temperature: vitals[0].temperature == null ? null : Number(vitals[0].temperature),
-          abnormal: isAbnormalVitals(vitals[0]),
+          abnormal: isCriticalVital(vitals[0]),
         }
       : null,
     results: results.map(r => ({
@@ -240,8 +224,8 @@ export async function buildPatientPortal(patientId: string) {
       notes: m.notes,
     })),
     invoices: invoices.map(i => {
-      const total = Number(i.totalAmount)
-      const paid = Number(i.paidAmount)
+      const total = centsToDollars(i.totalAmount)
+      const paid = centsToDollars(i.paidAmount)
       return {
         id: i.id,
         invoiceNumber: i.invoiceNumber,
@@ -257,21 +241,23 @@ export async function buildPatientPortal(patientId: string) {
           description: item.description,
           category: item.category,
           quantity: item.quantity,
-          unitPrice: Number(item.unitPrice),
-          amount: Number(item.amount),
+          unitPrice: centsToDollars(item.unitPrice),
+          amount: centsToDollars(item.amount),
         })),
         payments: i.payments.map(pay => ({
           id: pay.id,
-          amount: Number(pay.amount),
+          amount: centsToDollars(pay.amount),
           method: pay.method,
           reference: pay.reference,
           paidAt: pay.paidAt,
         })),
       }
     }),
-    outstandingBalance: invoices
-      .filter(i => i.status !== "VOID")
-      .reduce((sum, i) => sum + (Number(i.totalAmount) - Number(i.paidAmount)), 0),
+    outstandingBalance: centsToDollars(
+      invoices
+        .filter(i => i.status !== "VOID")
+        .reduce((sum, i) => sum + (i.totalAmount - i.paidAmount), 0)
+    ),
     messages: messages.map(m => ({
       id: m.id,
       subject: m.subject,
@@ -306,6 +292,14 @@ export async function buildPatientPortal(patientId: string) {
           attendingDoctor: admission.doctor?.user.name ?? null,
         }
       : null,
+    physicians: physicianRows
+      .map(doctor => ({
+        id: doctor.id,
+        userId: doctor.user.id,
+        name: doctor.user.name ?? "Physician",
+        specialization: doctor.specialization,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name)),
   }
 }
 
@@ -335,7 +329,11 @@ export async function buildDoctorPortal(doctorId: string) {
     schedules,
   ] = await prisma.$transaction([
     prisma.appointment.findMany({
-      where: { doctorId, scheduledAt: { gte: dayStart, lte: dayEnd } },
+      where: {
+        doctorId,
+        scheduledAt: { gte: dayStart, lte: dayEnd },
+        status: { notIn: ["CANCELLED", "NO_SHOW"] },
+      },
       orderBy: { scheduledAt: "asc" },
       include: { patient: { include: { user: { select: { name: true } } } } },
     }),
@@ -398,7 +396,7 @@ export async function buildDoctorPortal(doctorId: string) {
       image: profile.user.image,
       specialization: profile.specialization,
       licenseNumber: profile.licenseNumber,
-      consultationFee: profile.consultationFee == null ? null : Number(profile.consultationFee),
+      consultationFee: centsToDollars(profile.consultationFee),
       departmentName: profile.department?.name ?? null,
     },
     stats: {
@@ -542,24 +540,7 @@ export async function buildNursePortal(nurseId: string) {
   const patientIds = census.map(c => c.patientId)
   const scope = patientIds.length ? patientIds : emptyIds
 
-  const [latestVitals, medications, notes, dueMedications, labOrders] = await prisma.$transaction([
-    // Newest first; the first row per patient is their most recent reading.
-    prisma.vitalSign.findMany({
-      where: { patientId: { in: patientIds } },
-      orderBy: { recordedAt: "desc" },
-      take: 100,
-      select: {
-        id: true,
-        patientId: true,
-        recordedAt: true,
-        temperature: true,
-        heartRate: true,
-        systolic: true,
-        diastolic: true,
-        oxygenSaturation: true,
-        painScore: true,
-      },
-    }),
+  const [medications, notes, dueMedications, labOrders] = await prisma.$transaction([
     prisma.medicationAdministration.findMany({
       where: { patientId: { in: scope } },
       orderBy: { administeredAt: "desc" },
@@ -589,9 +570,37 @@ export async function buildNursePortal(nurseId: string) {
     }),
   ])
 
-  // `latestVitals` comes back newest-first, so the first row per patient is the
-  // most recent reading. The MAR and dashboard both surface these, so they are
-  // de-duplicated here rather than refetched per page.
+  const latestVitals = (
+    await Promise.all(
+      patientIds.map(patientId =>
+        prisma.vitalSign.findFirst({
+          where: { patientId },
+          orderBy: { recordedAt: "desc" },
+          select: {
+            id: true,
+            patientId: true,
+            recordedAt: true,
+            temperature: true,
+            heartRate: true,
+            systolic: true,
+            diastolic: true,
+            oxygenSaturation: true,
+            painScore: true,
+          },
+        })
+      )
+    )
+  ).flatMap(row => (row ? [row] : []))
+
+  const escalationTitles = census
+    .map(row => row.patient.user.name)
+    .filter((name): name is string => Boolean(name))
+    .map(name => `Critical vitals: ${name}`)
+  const escalatedCount = escalationTitles.length
+    ? await prisma.notification.count({ where: { title: { in: escalationTitles } } })
+    : 0
+
+  // One row per admitted patient: the newest reading, not the newest ward-wide page.
   const latestVitalByPatient = new Map<
     string,
     {
@@ -619,7 +628,7 @@ export async function buildNursePortal(nurseId: string) {
       diastolic: v.diastolic,
       oxygenSaturation: v.oxygenSaturation,
       painScore: v.painScore,
-      abnormal: isAbnormalVitals(v),
+      abnormal: isCriticalVital(v),
     })
   }
   const medsByPatient = new Map<string, number>()
@@ -643,6 +652,7 @@ export async function buildNursePortal(nurseId: string) {
       pendingLabCount: labOrders.length,
       noteCount: notes.length,
       wardsOccupied: new Set(census.map(c => c.bed.ward.name)).size,
+      escalatedCount,
     },
     patients: census.map(c => ({
       id: c.patientId,
@@ -764,7 +774,7 @@ export async function buildAdminPortal() {
       take: 50,
       include: {
         patient: { include: { user: { select: { name: true } } } },
-        items: { select: { id: true, testName: true } },
+        items: { select: { id: true, testName: true, result: true } },
       },
     }),
     prisma.branch.findMany({
@@ -773,39 +783,48 @@ export async function buildAdminPortal() {
     }),
     // Six months of invoice volume for the revenue trend chart.
     prisma.invoice.findMany({
-      where: { issuedAt: { gte: new Date(new Date().getFullYear(), new Date().getMonth() - 5, 1) } },
+      where: { issuedAt: { gte: hospitalMonthStart(5, now) } },
       select: { issuedAt: true, totalAmount: true, paidAmount: true },
     }),
   ])
 
   const totalBeds = bedStats.reduce((sum, b) => sum + b._count._all, 0)
   const occupiedBeds = bedStats.find(b => b.isOccupied)?._count._all ?? 0
-  const outstanding = invoices
-    .filter(i => i.status !== "VOID" && i.status !== "PAID")
-    .reduce((sum, i) => sum + (Number(i.totalAmount) - Number(i.paidAmount)), 0)
+  const outstanding = centsToDollars(
+    invoices
+      .filter(i => i.status !== "VOID" && i.status !== "PAID")
+      .reduce((sum, i) => sum + (i.totalAmount - i.paidAmount), 0)
+  )
 
-  // Billed revenue bucketed by calendar month, oldest first, always six entries
+  // Billed revenue bucketed by hospital-calendar month, oldest first, always six entries
   // so the chart keeps a stable x-axis even when a month has no invoices.
   const revenueByMonth = (() => {
-    const now = new Date()
-    const buckets: { month: string; total: number; collected: number }[] = []
+    const current = hospitalYearMonth(now)
+    const currentIndex = current.year * 12 + (current.month - 1)
+    const buckets: { month: string; key: number; total: number; collected: number }[] = []
     for (let i = 5; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
-      buckets.push({
-        month: d.toLocaleDateString("en-US", { month: "short" }),
-        total: 0,
-        collected: 0,
+      const key = currentIndex - i
+      const year = Math.floor(key / 12)
+      const month = key % 12
+      const label = new Date(Date.UTC(year, month, 1)).toLocaleDateString("en-US", {
+        month: "short",
+        timeZone: "UTC",
       })
+      buckets.push({ month: label, key, total: 0, collected: 0 })
     }
     for (const invoice of monthBuckets) {
-      const d = new Date(invoice.issuedAt)
-      const offset = (now.getFullYear() - d.getFullYear()) * 12 + (now.getMonth() - d.getMonth())
-      const bucket = buckets[5 - offset]
+      const issued = hospitalYearMonth(new Date(invoice.issuedAt))
+      const key = issued.year * 12 + (issued.month - 1)
+      const bucket = buckets.find(entry => entry.key === key)
       if (!bucket) continue
-      bucket.total += Number(invoice.totalAmount)
-      bucket.collected += Number(invoice.paidAmount)
+      bucket.total += invoice.totalAmount
+      bucket.collected += invoice.paidAmount
     }
-    return buckets
+    return buckets.map(({ month, total, collected }) => ({
+      month,
+      total: centsToDollars(total),
+      collected: centsToDollars(collected),
+    }))
   })()
 
   return {
@@ -822,7 +841,7 @@ export async function buildAdminPortal() {
       outstandingBalance: outstanding,
       // Summed per line item, since aggregating quantity and unitCost separately
       // would multiply unrelated averages together.
-      inventoryValue: inventory.reduce((sum, i) => sum + i.quantity * Number(i.unitCost), 0),
+      inventoryValue: centsToDollars(inventory.reduce((sum, i) => sum + i.quantity * i.unitCost, 0)),
       labStats: labStats.map(l => ({ status: l.status, count: l._count._all })),
       pendingLeaveCount: leaveRequests.length,
       lowStockCount: inventory.filter(i => i.quantity <= i.reorderLevel).length,
@@ -871,7 +890,7 @@ export async function buildAdminPortal() {
       quantity: i.quantity,
       unit: i.unit,
       reorderLevel: i.reorderLevel,
-      unitCost: Number(i.unitCost),
+      unitCost: centsToDollars(i.unitCost),
       supplier: i.supplier,
       expiryDate: i.expiryDate,
       departmentName: i.department.name,
@@ -879,11 +898,12 @@ export async function buildAdminPortal() {
       expired: i.expiryDate != null && i.expiryDate < now,
     })),
     invoices: invoices.map(i => {
-      const total = Number(i.totalAmount)
-      const paid = Number(i.paidAmount)
+      const total = centsToDollars(i.totalAmount)
+      const paid = centsToDollars(i.paidAmount)
       return {
         id: i.id,
         invoiceNumber: i.invoiceNumber,
+        patientId: i.patientId,
         patientName: i.patient.user.name,
         status: i.status,
         totalAmount: total,
@@ -906,7 +926,7 @@ export async function buildAdminPortal() {
     })),
     auditLog: recentAudit.map(a => ({
       id: a.id,
-      userName: a.user.name,
+      userName: a.user?.name ?? "System",
       action: a.action,
       entity: a.entity,
       entityId: a.entityId,
@@ -927,6 +947,11 @@ export async function buildAdminPortal() {
       priority: l.priority,
       orderedAt: l.orderedAt,
       tests: l.items.map(i => i.testName),
+      items: l.items.map(item => ({
+        id: item.id,
+        testName: item.testName,
+        result: item.result,
+      })),
     })),
     branches: branches.map(b => ({
       id: b.id,

@@ -1,10 +1,10 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useMemo } from "react"
 import { motion } from "framer-motion"
 import {
   Activity, AlertTriangle, Bed, CheckSquare, ClipboardList, Clock, HeartPulse,
-  MessageSquare, Pill, Stethoscope, Thermometer, Users, Wind,
+  MessageSquare, Pill, Thermometer, Users, Wind,
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card"
 import { Button } from "@/components/ui/Button"
@@ -21,7 +21,6 @@ type Vital = NonNullable<NursePortalData["latestVitals"]>[number]
 type Note = NonNullable<NursePortalData["notes"]>[number]
 
 export function NurseDashboardClient() {
-  const [roundStarted, setRoundStarted] = useState(false)
   const { data, loading, error } = useNursePortal()
 
   const medications = useMemo(() => data.medications ?? [], [data.medications])
@@ -36,7 +35,7 @@ export function NurseDashboardClient() {
     return { given, held, pending, total: medications.length }
   }, [medications])
 
-  const escalated = vitals.filter(v => v.abnormal).length
+  const escalated = data.stats?.escalatedCount ?? 0
   const pendingLabs = data.stats?.pendingLabCount ?? 0
 
   const nameByPatientId = useMemo(
@@ -152,10 +151,6 @@ export function NurseDashboardClient() {
               <ClipboardList className="w-4 h-4" />
               Shift Handoff
             </Button>
-            <Button onClick={() => setRoundStarted(true)} disabled={roundStarted}>
-              <Stethoscope className="w-4 h-4" />
-              {roundStarted ? "Round started" : "Start Med Round"}
-            </Button>
           </>
         }
       />
@@ -185,7 +180,7 @@ export function NurseDashboardClient() {
         <StatCard
           label="Out-of-Range Vitals"
           value={loading ? "—" : String(escalated)}
-          hint="Escalated to on-call"
+          hint="Physician alerts sent"
           icon={HeartPulse}
           accent="coral"
         />
@@ -256,7 +251,7 @@ export function NurseDashboardClient() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2 sm:shrink-0">
-                    <Button variant="ghost" size="sm" href={`/portal/nurse/patients?patient=${patient.id}`}>
+                    <Button variant="ghost" size="sm" href={`/portal/nurse/patients/${patient.id}`}>
                       Chart
                     </Button>
                   </div>

@@ -2,8 +2,9 @@ import { z } from "zod"
 import { Prisma } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
 import { nurseWardPatientIds } from "@/server/assignment"
-import { AuthError, ConflictError, recordAudit, requireActor, withErrorHandling } from "@/server/authz"
+import { AuthError, assertObjectId, recordAudit, requireActor, withErrorHandling } from "@/server/authz"
 import type { Actor } from "@/server/authz"
+import { assertDoctorSlotAvailable } from "@/server/slots"
 
 const createSchema = z.object({
   doctorId: z.string().min(1),
@@ -45,17 +46,6 @@ async function listScope(actor: Actor): Promise<Prisma.AppointmentWhereInput> {
   throw new AuthError("Insufficient permissions for this action", 403)
 }
 
-function rangesOverlap(
-  startA: number,
-  durationA: number,
-  startB: number,
-  durationB: number,
-) {
-  const endA = startA + durationA * 60_000
-  const endB = startB + durationB * 60_000
-  return startA < endB && startB < endA
-}
-
 export const GET = withErrorHandling(async (request: Request) => {
   const actor = await requireActor()
   const url = new URL(request.url)
@@ -93,6 +83,7 @@ export const POST = withErrorHandling(async (request: Request) => {
   }
 
   const body = createSchema.parse(await request.json())
+  assertObjectId(body.doctorId, "doctor id")
 
   if (body.scheduledAt.getTime() < Date.now() - 60_000) {
     return Response.json(
@@ -103,37 +94,7 @@ export const POST = withErrorHandling(async (request: Request) => {
 
   const book = () =>
     prisma.$transaction(async (tx) => {
-      try {
-        await tx.doctor.update({
-          where: { id: body.doctorId },
-          data: { updatedAt: new Date() },
-        })
-      } catch (error) {
-        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
-          throw new AuthError("That physician was not found", 404)
-        }
-        throw error
-      }
-
-      const existing = await tx.appointment.findMany({
-        where: {
-          doctorId: body.doctorId,
-          status: { in: ["SCHEDULED", "CONFIRMED", "IN_PROGRESS"] },
-        },
-        select: { scheduledAt: true, duration: true },
-      })
-
-      const overlaps = existing.some(row =>
-        rangesOverlap(
-          body.scheduledAt.getTime(),
-          body.duration,
-          row.scheduledAt.getTime(),
-          row.duration,
-        )
-      )
-      if (overlaps) {
-        throw new ConflictError("That time slot is no longer available")
-      }
+      await assertDoctorSlotAvailable(tx, body.doctorId, body.scheduledAt, body.duration)
 
       return tx.appointment.create({
         data: {

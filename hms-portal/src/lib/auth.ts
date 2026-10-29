@@ -28,7 +28,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (!parsed.success) return null
 
         const { email, password, role } = parsed.data
-        const user = await prisma.user.findUnique({ where: { email } })
+        const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } })
         
         if (!user || !user.passwordHash) return null
         
@@ -52,6 +52,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (user) {
         token.id = user.id ?? token.sub ?? ""
         token.role = user.role
+      } else if (typeof token.id === "string" && /^[a-f\d]{24}$/i.test(token.id)) {
+        try {
+          const row = await prisma.user.findUnique({
+            where: { id: token.id },
+            select: { role: true, name: true },
+          })
+          if (row) {
+            token.role = row.role
+            if (row.name) token.name = row.name
+          }
+        } catch (error) {
+          console.error("[auth] role refresh failed", error)
+        }
       }
       if (trigger === "update" && session && typeof session === "object" && "name" in session) {
         const name = (session as { name?: unknown }).name
@@ -67,7 +80,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return session
     },
   },
-  session: { strategy: "jwt", maxAge: 30 * 24 * 60 * 60 },
+  session: { strategy: "jwt", maxAge: 30 * 24 * 60 * 60, updateAge: 60 },
   secret: process.env.AUTH_SECRET,
   // Required outside Vercel (local dev) so Auth.js will accept the Host
   // header when building callback URLs. Vercel sets VERCEL=1 and this is a

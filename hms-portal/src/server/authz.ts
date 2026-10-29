@@ -15,6 +15,14 @@ export class AuthError extends Error {
   }
 }
 
+const OBJECT_ID = /^[a-f\d]{24}$/i
+
+export function assertObjectId(id: string, label = "id") {
+  if (!OBJECT_ID.test(id)) {
+    throw new AuthError(`Invalid ${label}`, 400)
+  }
+}
+
 export type Actor = {
   userId: string
   role: Role
@@ -36,7 +44,7 @@ export async function requireActor(): Promise<Actor> {
 
   // Sessions issued before the MongoDB move store cuid ids. Those are not
   // ObjectIds, and Prisma rejects them before it can report a missing user.
-  if (!/^[a-f\d]{24}$/i.test(session.user.id)) {
+  if (!OBJECT_ID.test(session.user.id)) {
     throw new AuthError("Account no longer exists", 401)
   }
 

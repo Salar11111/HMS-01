@@ -1,8 +1,8 @@
 "use client"
 
-import { ReactNode, useState } from "react"
+import { ReactNode, useEffect, useState } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { signOut, useSession } from "next-auth/react"
 import { motion, AnimatePresence } from "framer-motion"
 import { 
@@ -31,6 +31,7 @@ const navigation = {
     { href: "/portal/doctor/patients", label: "My Patients", icon: Users },
     { href: "/portal/doctor/ehr", label: "EHR & Charting", icon: FileText },
     { href: "/portal/doctor/prescriptions", label: "Prescriptions", icon: Pill },
+    { href: "/portal/doctor/messages", label: "Messages", icon: MessageSquare },
     { href: "/portal/doctor/settings", label: "Settings", icon: Settings },
   ],
   nurse: [
@@ -78,6 +79,13 @@ interface PortalLayoutProps {
 export function PortalLayout({ children, role }: PortalLayoutProps) {
   const { data: session, status } = useSession()
   const pathname = usePathname()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.replace(`/auth/signin?callbackUrl=${encodeURIComponent(pathname)}`)
+    }
+  }, [status, router, pathname])
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
 
@@ -151,7 +159,10 @@ export function PortalLayout({ children, role }: PortalLayoutProps) {
 
         <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto" aria-label="Portal navigation">
           {navItems.map((item) => {
-            const isActive = pathname === item.href || pathname.startsWith(item.href + "/")
+            const isDashboard = item.href === `/portal/${role}`
+            const isActive = isDashboard
+              ? pathname === item.href
+              : pathname === item.href || pathname.startsWith(item.href + "/")
             return (
               <Link
                 key={item.href}

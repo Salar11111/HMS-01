@@ -15,6 +15,9 @@ import { hash } from "bcryptjs"
 
 const prisma = new PrismaClient()
 
+/** Invoice amounts are integer cents. */
+const cents = (dollars: number) => Math.round(dollars * 100)
+
 /** Fixed ObjectIds so re-running the seed upserts the same documents. */
 const SEED_IDS = {
   wardIcu: "64a000000000000000000001",
@@ -280,7 +283,7 @@ async function main() {
       specialization: "Cardiology",
       licenseNumber: "MD-12345-CA",
       departmentId: departments["Cardiology"],
-      consultationFee: 150,
+      consultationFee: cents(150),
     },
   })
 
@@ -371,13 +374,13 @@ async function main() {
   })
 
   const bedSeeds = [
-    { wardId: icuWard.id, number: "ICU-01", bedType: "ICU", dailyRate: 2400 },
-    { wardId: icuWard.id, number: "ICU-02", bedType: "ICU", dailyRate: 2400 },
-    { wardId: icuWard.id, number: "ICU-03", bedType: "ICU", dailyRate: 2400 },
-    { wardId: generalWard.id, number: "GW-101", bedType: "STANDARD", dailyRate: 950 },
-    { wardId: generalWard.id, number: "GW-102", bedType: "STANDARD", dailyRate: 950 },
-    { wardId: generalWard.id, number: "GW-103", bedType: "STANDARD", dailyRate: 950 },
-    { wardId: generalWard.id, number: "GW-104", bedType: "DELUXE", dailyRate: 1200 },
+    { wardId: icuWard.id, number: "ICU-01", bedType: "ICU", dailyRate: cents(2400) },
+    { wardId: icuWard.id, number: "ICU-02", bedType: "ICU", dailyRate: cents(2400) },
+    { wardId: icuWard.id, number: "ICU-03", bedType: "ICU", dailyRate: cents(2400) },
+    { wardId: generalWard.id, number: "GW-101", bedType: "STANDARD", dailyRate: cents(950) },
+    { wardId: generalWard.id, number: "GW-102", bedType: "STANDARD", dailyRate: cents(950) },
+    { wardId: generalWard.id, number: "GW-103", bedType: "STANDARD", dailyRate: cents(950) },
+    { wardId: generalWard.id, number: "GW-104", bedType: "DELUXE", dailyRate: cents(1200) },
   ]
 
   for (const bed of bedSeeds) {
@@ -497,20 +500,20 @@ async function main() {
       patientId: patient.id,
       invoiceNumber: demoPatientInvoiceNumber,
       status: InvoiceStatus.PARTIALLY_PAID,
-      totalAmount: 3480,
-      paidAmount: 1500,
+      totalAmount: cents(3480),
+      paidAmount: cents(1500),
       issuedAt: daysFromNow(-6),
       dueAt: daysFromNow(9),
       items: {
         create: [
-          { description: "Cardiology consultation", category: "Consultation", quantity: 1, unitPrice: 150, amount: 150 },
-          { description: "ICU bed — 2 days", category: "Accommodation", quantity: 2, unitPrice: 950, amount: 1900 },
-          { description: "Troponin / BNP panel", category: "Laboratory", quantity: 1, unitPrice: 320, amount: 320 },
-          { description: "Pharmacy — Lisinopril 90 tabs", category: "Pharmacy", quantity: 1, unitPrice: 13.5, amount: 13.5 },
-          { description: "Cardiac imaging", category: "Imaging", quantity: 1, unitPrice: 1096.5, amount: 1096.5 },
+          { description: "Cardiology consultation", category: "Consultation", quantity: 1, unitPrice: cents(150), amount: cents(150) },
+          { description: "ICU bed — 2 days", category: "Accommodation", quantity: 2, unitPrice: cents(950), amount: cents(1900) },
+          { description: "Troponin / BNP panel", category: "Laboratory", quantity: 1, unitPrice: cents(320), amount: cents(320) },
+          { description: "Pharmacy — Lisinopril 90 tabs", category: "Pharmacy", quantity: 1, unitPrice: cents(13.5), amount: cents(13.5) },
+          { description: "Cardiac imaging", category: "Imaging", quantity: 1, unitPrice: cents(1096.5), amount: cents(1096.5) },
         ],
       },
-      payments: { create: [{ amount: 1500, method: PaymentMethod.INSURANCE, reference: "CLM-88213" }] },
+      payments: { create: [{ amount: cents(1500), method: PaymentMethod.INSURANCE, reference: "CLM-88213" }] },
     },
   })
 
@@ -540,9 +543,9 @@ async function main() {
 
   await prisma.inventory.createMany({
     data: [
-      { departmentId: departments["Pharmacy"], name: "IV Saline 0.9% 500ml", category: "Fluids", quantity: 180, unit: "bags", reorderLevel: 60, unitCost: 3.2, supplier: "MedSupply Inc" },
-      { departmentId: departments["Laboratory"], name: "Blood Culture Vials", category: "Diagnostics", quantity: 40, unit: "units", reorderLevel: 80, unitCost: 6.5, supplier: "MedSupply Inc" },
-      { departmentId: departments["Nursing"], name: "Nitrile Gloves (M)", category: "Consumables", quantity: 900, unit: "pairs", reorderLevel: 400, unitCost: 0.12, supplier: "SafeCare" },
+      { departmentId: departments["Pharmacy"], name: "IV Saline 0.9% 500ml", category: "Fluids", quantity: 180, unit: "bags", reorderLevel: 60, unitCost: cents(3.2), supplier: "MedSupply Inc" },
+      { departmentId: departments["Laboratory"], name: "Blood Culture Vials", category: "Diagnostics", quantity: 40, unit: "units", reorderLevel: 80, unitCost: cents(6.5), supplier: "MedSupply Inc" },
+      { departmentId: departments["Nursing"], name: "Nitrile Gloves (M)", category: "Consumables", quantity: 900, unit: "pairs", reorderLevel: 400, unitCost: cents(0.12), supplier: "SafeCare" },
     ],
   })
 
@@ -704,11 +707,24 @@ async function main() {
         specialization: seed.specialization,
         licenseNumber: seed.licenseNumber,
         departmentId: departments["General Medicine"],
-        consultationFee: seed.fee,
+        consultationFee: cents(seed.fee),
       },
     })
     cohortDoctors.push({ id: profile.id, name: seed.name, fee: seed.fee, userId: user.id })
   }
+
+  await prisma.schedule.deleteMany({
+    where: { doctorId: { in: cohortDoctors.map(doctor => doctor.id) } },
+  })
+  await prisma.schedule.createMany({
+    data: cohortDoctors.flatMap(doctor => [
+      { doctorId: doctor.id, dayOfWeek: 1, startTime: "08:00", endTime: "12:00" },
+      { doctorId: doctor.id, dayOfWeek: 1, startTime: "13:00", endTime: "17:00" },
+      { doctorId: doctor.id, dayOfWeek: 3, startTime: "08:00", endTime: "12:00" },
+      { doctorId: doctor.id, dayOfWeek: 3, startTime: "13:00", endTime: "17:00" },
+      { doctorId: doctor.id, dayOfWeek: 5, startTime: "08:00", endTime: "12:00" },
+    ]),
+  })
 
   const cohortNurseSeeds = [
     { email: "j.patel@demo.com", name: "J. Patel", shift: "Night", licenseNumber: "RN-74410-CA" },
@@ -1020,20 +1036,20 @@ async function main() {
         patientId: p.id,
         invoiceNumber: number,
         status: plan.status,
-        totalAmount: plan.total,
-        paidAmount: plan.paid,
+        totalAmount: cents(plan.total),
+        paidAmount: cents(plan.paid),
         issuedAt,
         dueAt: daysFromNow(plan.dueInDays),
         items: {
           create: [
-            { description: plan.description, category: "Consultation", quantity: 1, unitPrice: plan.total, amount: plan.total },
+            { description: plan.description, category: "Consultation", quantity: 1, unitPrice: cents(plan.total), amount: cents(plan.total) },
           ],
         },
         ...(plan.paid > 0
           ? {
               payments: {
                 create: [
-                  { amount: plan.paid, method: PaymentMethod.INSURANCE, reference: `CLM-${number.slice(-4)}` },
+                  { amount: cents(plan.paid), method: PaymentMethod.INSURANCE, reference: `CLM-${number.slice(-4)}` },
                 ],
               },
             }
@@ -1045,11 +1061,11 @@ async function main() {
   // More inventory and equipment so those admin pages have depth.
   await prisma.inventory.createMany({
     data: [
-      { departmentId: departments["Pharmacy"], name: "Lisinopril 10mg", category: "Medication", quantity: 540, unit: "tablets", reorderLevel: 100, unitCost: 0.15, supplier: "PharmaCorp" },
-      { departmentId: departments["Pharmacy"], name: "Atorvastatin 20mg", category: "Medication", quantity: 300, unit: "tablets", reorderLevel: 50, unitCost: 0.22, supplier: "PharmaCorp" },
-      { departmentId: departments["Pharmacy"], name: "Ampicillin 1g", category: "Medication", quantity: 65, unit: "vials", reorderLevel: 40, unitCost: 4.8, supplier: "MedSupply Inc", expiryDate: daysFromNow(-12) },
-      { departmentId: departments["Nursing"], name: "Surgical Masks", category: "Consumables", quantity: 2400, unit: "units", reorderLevel: 800, unitCost: 0.08, supplier: "SafeCare" },
-      { departmentId: departments["Laboratory"], name: "Reagent Pack — Chemistry", category: "Diagnostics", quantity: 25, unit: "packs", reorderLevel: 30, unitCost: 148, supplier: "MedSupply Inc" },
+      { departmentId: departments["Pharmacy"], name: "Lisinopril 10mg", category: "Medication", quantity: 540, unit: "tablets", reorderLevel: 100, unitCost: cents(0.15), supplier: "PharmaCorp" },
+      { departmentId: departments["Pharmacy"], name: "Atorvastatin 20mg", category: "Medication", quantity: 300, unit: "tablets", reorderLevel: 50, unitCost: cents(0.22), supplier: "PharmaCorp" },
+      { departmentId: departments["Pharmacy"], name: "Ampicillin 1g", category: "Medication", quantity: 65, unit: "vials", reorderLevel: 40, unitCost: cents(4.8), supplier: "MedSupply Inc", expiryDate: daysFromNow(-12) },
+      { departmentId: departments["Nursing"], name: "Surgical Masks", category: "Consumables", quantity: 2400, unit: "units", reorderLevel: 800, unitCost: cents(0.08), supplier: "SafeCare" },
+      { departmentId: departments["Laboratory"], name: "Reagent Pack — Chemistry", category: "Diagnostics", quantity: 25, unit: "packs", reorderLevel: 30, unitCost: cents(148), supplier: "MedSupply Inc" },
     ],
   })
 

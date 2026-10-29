@@ -35,7 +35,8 @@ export function useApiData<T>(path: string, fallback: T): Result<T> {
     fetch(path, { cache: "no-store" })
       .then(async response => {
         if (!response.ok) {
-          throw new Error(`status ${response.status}`)
+          const body = (await response.json().catch(() => null)) as { error?: string } | null
+          throw new Error(body?.error ?? `status ${response.status}`)
         }
         return (await response.json()) as T
       })

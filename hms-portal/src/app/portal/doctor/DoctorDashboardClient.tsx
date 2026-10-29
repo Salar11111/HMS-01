@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion"
 import {
-  Calendar, Users, FileText, Plus,
+  Calendar, Users, FileText,
   ChevronRight, AlertTriangle, Activity, Pill, MessageSquare
 } from "lucide-react"
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/Card"
@@ -59,13 +59,13 @@ export function DoctorDashboardClient() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="secondary" className="gap-2" href="/portal/doctor/ehr/new">
-            <Plus className="w-4 h-4" />
-            New Note
+          <Button variant="secondary" className="gap-2" href="/portal/doctor/ehr">
+            <FileText className="w-4 h-4" />
+            Chart notes
           </Button>
-          <Button className="gap-2" href="/portal/doctor/patients/new">
-            <Plus className="w-4 h-4" />
-            New Patient
+          <Button className="gap-2" href="/portal/doctor/patients">
+            <Users className="w-4 h-4" />
+            Open panel
           </Button>
         </div>
       </motion.div>

@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useCallback, useState } from "react"
 import { motion } from "framer-motion"
 import {
   ArrowRight,
@@ -49,16 +49,18 @@ export default function LandingPage() {
   const [portalOpen, setPortalOpen] = useState(false)
   const router = useRouter()
 
+  const finishEnter = useCallback(() => {
+    router.push("/auth/signin?mode=portal")
+  }, [router])
+
   const handleEnterPortal = () => {
+    if (portalOpen) return
     setPortalOpen(true)
-    setTimeout(() => {
-      router.push("/auth/signin?mode=portal")
-    }, 900)
   }
 
   return (
     <div className="min-h-screen bg-[#FBF7F0] text-[#2F3E2E] overflow-hidden relative">
-      <PortalTransition isOpen={portalOpen} onComplete={() => {}} color="sage" size={200} />
+      <PortalTransition isOpen={portalOpen} onComplete={finishEnter} />
 
       <nav className="relative z-10 max-w-7xl mx-auto px-6 lg:px-10 py-6 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-3">
@@ -78,7 +80,8 @@ export default function LandingPage() {
         <button
           type="button"
           onClick={handleEnterPortal}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#2F3E2E] text-white text-sm font-semibold hover:bg-[#3D523B] transition-colors shadow-md"
+          disabled={portalOpen}
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#2F3E2E] text-white text-sm font-semibold hover:bg-[#3D523B] transition-colors shadow-md disabled:pointer-events-none"
         >
           Enter Portal
           <ArrowRight className="w-4 h-4" />
@@ -101,9 +104,13 @@ export default function LandingPage() {
             <button
               type="button"
               onClick={handleEnterPortal}
-              className="mt-8 inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#7BA68C] text-white text-sm font-semibold hover:bg-[#5C8A70] transition-colors shadow-lg shadow-[#7BA68C]/30"
+              disabled={portalOpen}
+              className="group mt-10 inline-flex items-center gap-3 px-8 py-4 rounded-full bg-gradient-to-br from-[#7BA68C] to-[#5C8A70] text-white text-base font-semibold shadow-xl shadow-[#7BA68C]/30 hover:shadow-2xl hover:shadow-[#7BA68C]/40 hover:-translate-y-0.5 transition-all disabled:pointer-events-none"
             >
-              <ArrowRight className="w-4 h-4" />
+              <span className="relative flex items-center justify-center w-6 h-6">
+                <span className="absolute inset-0 rounded-full border-2 border-white/60 group-hover:scale-125 transition-transform" />
+                <ArrowRight className="w-4 h-4 relative z-10 group-hover:translate-x-0.5 transition-transform" />
+              </span>
               Enter the Portal
             </button>
             <div className="mt-6 flex items-center gap-5 text-sm text-[#5A6B57]">
@@ -211,7 +218,8 @@ export default function LandingPage() {
               <button
                 type="button"
                 onClick={handleEnterPortal}
-                className="mt-8 inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#2F3E2E] text-white text-sm font-semibold hover:bg-[#3D523B] transition-colors"
+                disabled={portalOpen}
+                className="mt-8 inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#2F3E2E] text-white text-sm font-semibold hover:bg-[#3D523B] transition-colors disabled:pointer-events-none"
               >
                 Enter the Portal
                 <ArrowRight className="w-4 h-4" />

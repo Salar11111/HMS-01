@@ -2,6 +2,7 @@ import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 import { nurseCoversPatient, patientScope, scopedPatientFilter } from "@/server/assignment"
 import {
+  assertObjectId,
   recordAudit,
   requireRole,
   withErrorHandling,
@@ -57,6 +58,21 @@ export const POST = withErrorHandling(async (request: Request) => {
   }
 
   const body = administerSchema.parse(await request.json())
+  assertObjectId(body.patientId, "patient id")
+
+  if (body.prescriptionId) {
+    assertObjectId(body.prescriptionId, "prescription id")
+    const prescription = await prisma.prescription.findUnique({
+      where: { id: body.prescriptionId },
+      select: { patientId: true },
+    })
+    if (!prescription || prescription.patientId !== body.patientId) {
+      return Response.json(
+        { error: "That prescription is not for this patient" },
+        { status: 400 }
+      )
+    }
+  }
 
   if (!(await nurseCoversPatient(actor.nurseId, body.patientId))) {
     return Response.json(

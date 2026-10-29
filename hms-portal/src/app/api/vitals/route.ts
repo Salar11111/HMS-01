@@ -1,7 +1,8 @@
 import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 import { nurseCoversPatient, patientScope, scopedPatientFilter } from "@/server/assignment"
-import { recordAudit, requireRole, withErrorHandling } from "@/server/authz"
+import { assertObjectId, recordAudit, requireRole, withErrorHandling } from "@/server/authz"
+import { criticalVitalSummary } from "@/lib/vitals"
 
 const createSchema = z.object({
   patientId: z.string().min(1),
@@ -51,6 +52,7 @@ export const GET = withErrorHandling(async (request: Request) => {
 export const POST = withErrorHandling(async (request: Request) => {
   const actor = await requireRole("NURSE")
   const body = createSchema.parse(await request.json())
+  assertObjectId(body.patientId, "patient id")
 
   if (!actor.nurseId) {
     return Response.json(
@@ -101,7 +103,7 @@ export const POST = withErrorHandling(async (request: Request) => {
     )
   }
 
-  const alert = detectCritical(body)
+  const alert = criticalVitalSummary(body)
 
   const vital = await prisma.vitalSign.create({
     data: {
@@ -138,38 +140,6 @@ export const POST = withErrorHandling(async (request: Request) => {
 
   return Response.json({ vital, alert }, { status: 201 })
 })
-
-function detectCritical(v: {
-  temperature?: number
-  heartRate?: number
-  systolic?: number
-  diastolic?: number
-  respiratoryRate?: number
-  oxygenSaturation?: number
-}): string | null {
-  const alerts: string[] = []
-
-  if (v.oxygenSaturation !== undefined && v.oxygenSaturation < 92) {
-    alerts.push(`SpO2 ${v.oxygenSaturation}%`)
-  }
-  if (v.heartRate !== undefined && (v.heartRate < 40 || v.heartRate > 130)) {
-    alerts.push(`HR ${v.heartRate}`)
-  }
-  if (v.systolic !== undefined && (v.systolic < 90 || v.systolic > 200)) {
-    alerts.push(`BP ${v.systolic}/${v.diastolic ?? "?"}`)
-  }
-  if (v.temperature !== undefined && (v.temperature < 35 || v.temperature >= 39)) {
-    alerts.push(`Temp ${v.temperature}C`)
-  }
-  if (
-    v.respiratoryRate !== undefined &&
-    (v.respiratoryRate < 8 || v.respiratoryRate > 30)
-  ) {
-    alerts.push(`RR ${v.respiratoryRate}`)
-  }
-
-  return alerts.length ? `Outside safe range: ${alerts.join(", ")}` : null
-}
 
 async function resolveDoctorUserId(patientId: string) {
   const admission = await prisma.admission.findFirst({

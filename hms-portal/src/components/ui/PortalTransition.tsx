@@ -1,65 +1,63 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useEffect } from "react"
 import { motion, AnimatePresence, HTMLMotionProps } from "framer-motion"
+import { HeartPulse } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface PortalTransitionProps {
   isOpen: boolean
   onComplete: () => void
-  color?: "sage" | "coral" | "teal"
-  size?: number
+  /** Total hold before navigation; keep in sync with the bloom duration. */
+  durationMs?: number
 }
 
-export function PortalTransition({ 
-  isOpen, 
-  onComplete, 
-  color = "sage",
-  size = 150 
+/**
+ * Expanding-circle doorway used when leaving the marketing site for the portal.
+ * Matches the Verdant/MedFlow pattern: sage bloom, white ring ripple, brand mark.
+ */
+export function PortalTransition({
+  isOpen,
+  onComplete,
+  durationMs = 1500,
 }: PortalTransitionProps) {
-  const circleRef = useRef<HTMLDivElement>(null)
-  
-  const colors = {
-    sage: "bg-sage-500",
-    coral: "bg-[var(--accent-coral)]",
-    teal: "bg-[var(--accent-teal)]",
-  }
-
   useEffect(() => {
     if (!isOpen) return
-
-    const timer = setTimeout(() => {
-      onComplete()
-    }, 800)
-
+    const timer = setTimeout(() => onComplete(), durationMs)
     return () => clearTimeout(timer)
-  }, [isOpen, onComplete])
+  }, [isOpen, onComplete, durationMs])
 
   return (
-    <AnimatePresence mode="wait">
+    <AnimatePresence>
       {isOpen && (
-        <>
+        <motion.div
+          className="fixed inset-0 z-[700] flex items-center justify-center pointer-events-none"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.2 }}
+          aria-hidden="true"
+        >
           <motion.div
-            ref={circleRef}
-            initial={{ scale: 0, opacity: 1 }}
-            animate={{ scale: size, opacity: 0 }}
-            transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
-            className={cn(
-              "fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full pointer-events-none z-[700]",
-              colors[color]
-            )}
-            style={{ width: 0, height: 0 }}
-            aria-hidden="true"
+            className="absolute rounded-full bg-gradient-to-br from-[#A8C4A0] to-[#7BA68C]"
+            initial={{ scale: 0, width: 10, height: 10 }}
+            animate={{ scale: 1, width: "300vmax", height: "300vmax" }}
+            transition={{ duration: 1.3, ease: [0.22, 1, 0.36, 1] }}
           />
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3, delay: 0.6 }}
-            className="fixed inset-0 z-[699] bg-cream-50 pointer-events-none"
-            aria-hidden="true"
+            className="absolute rounded-full border-[6px] border-white/40"
+            initial={{ scale: 0, width: 80, height: 80, opacity: 0.9 }}
+            animate={{ scale: 8, width: 80, height: 80, opacity: 0 }}
+            transition={{ duration: 1.3, ease: "easeOut" }}
           />
-        </>
+          <motion.div
+            className="relative z-10 text-white"
+            initial={{ scale: 0.4, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.15, duration: 0.5 }}
+          >
+            <HeartPulse className="w-16 h-16" strokeWidth={1.5} />
+          </motion.div>
+        </motion.div>
       )}
     </AnimatePresence>
   )
@@ -123,7 +121,7 @@ export function StaggerItem({ children, className = "", ...props }: StaggerItemP
   return (
     <motion.div
       {...props}
-      className={className}
+      className={cn(className)}
       variants={{
         hidden: { opacity: 0, y: 20 },
         show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.4, 0, 0.2, 1] } },

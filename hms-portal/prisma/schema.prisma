@@ -182,7 +182,7 @@ model Doctor {
   licenseNumber   String      @unique
   departmentId    String?     @db.ObjectId
   department      Department? @relation(fields: [departmentId], references: [id])
-  consultationFee Float     @default(0)
+  consultationFee Int       @default(0)
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 
@@ -272,7 +272,7 @@ model Bed {
   number     String
   bedType    String   @default("STANDARD")
   isOccupied Boolean  @default(false)
-  dailyRate  Float  @default(0)
+  dailyRate  Int      @default(0)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
@@ -448,8 +448,8 @@ model Invoice {
   patient       Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
   invoiceNumber String        @unique
   status        InvoiceStatus @default(ISSUED)
-  totalAmount   Float       @default(0)
-  paidAmount    Float       @default(0)
+  totalAmount   Int           @default(0)
+  paidAmount    Int           @default(0)
   issuedAt      DateTime      @default(now())
   dueAt         DateTime?
 
@@ -466,15 +466,15 @@ model InvoiceItem {
   description String
   category    String
   quantity    Int     @default(1)
-  unitPrice   Float
-  amount      Float
+  unitPrice   Int
+  amount      Int
 }
 
 model Payment {
   id        String        @id @default(auto()) @map("_id") @db.ObjectId
   invoiceId String        @db.ObjectId
   invoice   Invoice       @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-  amount    Float
+  amount    Int
   method    PaymentMethod
   reference String?
   paidAt    DateTime      @default(now())
@@ -557,7 +557,7 @@ model Inventory {
   quantity     Int        @default(0)
   unit         String
   reorderLevel Int        @default(10)
-  unitCost     Float
+  unitCost     Int
   supplier     String?
   expiryDate   DateTime?
   createdAt    DateTime   @default(now())
@@ -625,8 +625,8 @@ model Notification {
 
 model AuditLog {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId    String   @db.ObjectId
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String?  @db.ObjectId
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   action    String
   entity    String
   entityId  String?

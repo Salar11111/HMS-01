@@ -131,7 +131,8 @@ src/
     prisma.ts          Prisma client singleton
     auth.ts            Auth.js configuration
     format.ts          Status/currency/accent formatting
-    mock-data.ts       Static fixtures for the demo portal UI
+    money.ts           Integer-cent helpers for invoices and fees
+    time.ts            Hospital timezone day bounds
 ```
 
 ## Design notes
@@ -209,16 +210,17 @@ Three behaviours depend on that setup:
   transactions. The database must be a replica set. A standalone `mongod`
   rejects them. Concurrent payments compare `paidAmount` and `status` before
   updating, so a second payment on a stale balance returns `409`.
-- **Enums and money.** Prisma enums are stored as strings. Money and
-  measurement fields are `Float` (BSON double). Prisma’s MongoDB connector
-  does not support `Decimal`. Payment checks still compare integer cents so a
-  charge cannot exceed the outstanding balance.
+- **Enums and money.** Prisma enums are stored as strings. Invoice totals,
+  payments, consultation fees, inventory unit cost, and bed daily rates are
+  integer cents. Some catalogue fields (drug, equipment) are still `Float`.
+  Prisma’s MongoDB connector does not support `Decimal`.
 
 ## Known gaps
 
 - Portal module pages read the same live payloads as the dashboards. Settings
-  saves the display name and notification preferences on the user record.
-  Password change and two-factor controls are still display-only.
+  saves the display name, notification preferences, and password on the user
+  record. Notification preferences are stored only; this demo does not send
+  email or SMS. Two-factor controls are not implemented.
 - Page access and data access use different matrices on purpose. A doctor may
   open the nurse dashboard shell but gets `403` from `/api/portal/nurse`, and
   the page shows that error instead of an empty census. `src/proxy.ts` owns the

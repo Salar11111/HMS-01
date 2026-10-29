@@ -77,10 +77,14 @@ export const GET = withErrorHandling(async (request: Request) => {
     orderId: item.order.id,
   }))
 
-  await recordAudit(actor, "READ", "LabOrderItem", undefined, {
-    patientId: patientId ?? null,
-    count: results.length,
-  }, request)
+  try {
+    await recordAudit(actor, "READ", "LabOrderItem", undefined, {
+      patientId: typeof patientId === "string" ? patientId : null,
+      count: results.length,
+    }, request)
+  } catch (error) {
+    console.error("[api] lab result audit failed", error)
+  }
 
   return Response.json({ results })
 })

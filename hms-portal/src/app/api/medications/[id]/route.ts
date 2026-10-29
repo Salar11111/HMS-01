@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma"
 import {
+  assertObjectId,
   ConflictError,
   recordAudit,
   requireRole,
@@ -14,19 +15,20 @@ type Context = { params: Promise<{ id: string }> }
  * status VOIDED so the trail stays auditable.
  */
 export const DELETE = withErrorHandling(async (request: Request, ctx: Context) => {
-  const actor = await requireRole("NURSE")
+  const actor = await requireRole("NURSE", "ADMIN")
   const { id } = await ctx.params
+  assertObjectId(id, "administration id")
 
   const existing = await prisma.medicationAdministration.findUnique({
     where: { id },
-    select: { id: true, nurseId: true, drugName: true, dosage: true, status: true },
+    select: { id: true, nurseId: true, drugName: true, dosage: true, status: true, notes: true },
   })
 
   if (!existing) {
     return Response.json({ error: "Entry not found" }, { status: 404 })
   }
 
-  if (existing.nurseId !== actor.nurseId && actor.role !== "ADMIN") {
+  if (actor.role === "NURSE" && existing.nurseId !== actor.nurseId) {
     return Response.json(
       { error: "Only the administering nurse can void this entry" },
       { status: 403 }
@@ -37,9 +39,13 @@ export const DELETE = withErrorHandling(async (request: Request, ctx: Context) =
     throw new ConflictError("This entry has already been voided")
   }
 
+  const voidNote = existing.notes
+    ? `${existing.notes}\nVoided by the medication record`
+    : "Voided by the medication record"
+
   const voided = await prisma.medicationAdministration.update({
     where: { id },
-    data: { status: "VOIDED", notes: "Entry voided and corrected" },
+    data: { status: "VOIDED", notes: voidNote },
   })
 
   await recordAudit(

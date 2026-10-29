@@ -37,7 +37,7 @@ export const GET = withErrorHandling(async (request: Request) => {
         id: patient.id,
         title: patient.user.name ?? "Patient",
         subtitle: patient.medicalRecordNumber ?? "Patient",
-        href: "/portal/admin/billing",
+        href: `/portal/admin/billing?patientId=${patient.id}`,
       })
     }
     for (const invoice of invoices) {
@@ -45,7 +45,7 @@ export const GET = withErrorHandling(async (request: Request) => {
         id: invoice.id,
         title: invoice.invoiceNumber,
         subtitle: invoice.patient.user.name ?? "Invoice",
-        href: "/portal/admin/billing",
+        href: `/portal/admin/billing?invoiceId=${invoice.id}`,
       })
     }
     return Response.json({ results })
@@ -60,11 +60,11 @@ export const GET = withErrorHandling(async (request: Request) => {
     select: { id: true, medicalRecordNumber: true, user: { select: { name: true } } },
   })
 
-  const href =
+  const hrefFor = (patientId: string) =>
     actor.role === "DOCTOR"
-      ? "/portal/doctor/patients"
+      ? `/portal/doctor/patients/${patientId}`
       : actor.role === "NURSE"
-        ? "/portal/nurse/patients"
+        ? `/portal/nurse/patients/${patientId}`
         : "/portal/patient/records"
 
   for (const patient of patients) {
@@ -72,7 +72,7 @@ export const GET = withErrorHandling(async (request: Request) => {
       id: patient.id,
       title: patient.user.name ?? "Patient",
       subtitle: patient.medicalRecordNumber ?? "Record",
-      href,
+        href: hrefFor(patient.id),
     })
   }
 
@@ -87,7 +87,7 @@ export const GET = withErrorHandling(async (request: Request) => {
         id: visit.id,
         title: visit.reason ?? "Appointment",
         subtitle: visit.doctor.user.name ?? "Appointment",
-        href: "/portal/patient/appointments",
+        href: `/portal/patient/appointments?appointmentId=${visit.id}`,
       })
     }
   }

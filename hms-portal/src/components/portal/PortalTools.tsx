@@ -41,22 +41,32 @@ export function PortalTools() {
   }, [])
 
   useEffect(() => {
-    if (!searchOpen || query.trim().length < 2) {
-      setHits([])
-      return
-    }
+    const requested = query.trim()
+    if (!searchOpen || requested.length < 2) return
+    const controller = new AbortController()
     const handle = setTimeout(() => {
+      setHits([])
       setSearching(true)
-      fetch(`/api/search?q=${encodeURIComponent(query.trim())}`)
+      fetch(`/api/search?q=${encodeURIComponent(requested)}`, { signal: controller.signal })
         .then(response => (response.ok ? response.json() : { results: [] }))
-        .then(body => setHits(body.results ?? []))
-        .catch(() => setHits([]))
+        .then(body => {
+          if (controller.signal.aborted) return
+          setHits(body.results ?? [])
+          setSettledQuery(requested)
+        })
+        .catch(() => {
+          if (controller.signal.aborted) return
+          setHits([])
+          setSettledQuery(requested)
+        })
         .finally(() => {
-          setSearching(false)
-          setSettledQuery(query.trim())
+          if (!controller.signal.aborted) setSearching(false)
         })
     }, 250)
-    return () => clearTimeout(handle)
+    return () => {
+      clearTimeout(handle)
+      controller.abort()
+    }
   }, [query, searchOpen])
 
   async function markRead(note: Note) {
@@ -105,11 +115,11 @@ export function PortalTools() {
               </button>
             </div>
             <ul className="mt-2 max-h-64 overflow-auto">
-              {searching && <li className="px-2 py-2 text-sm text-clay-500">Searching…</li>}
+              {query.trim().length >= 2 && searching && <li className="px-2 py-2 text-sm text-clay-500">Searching…</li>}
               {!searching && settledQuery === query.trim() && query.trim().length >= 2 && hits.length === 0 && (
                 <li className="px-2 py-2 text-sm text-clay-500">No matching records.</li>
               )}
-              {hits.map(hit => (
+              {(searchOpen && query.trim().length >= 2 ? hits : []).map(hit => (
                 <li key={hit.id}>
                   <Link
                     href={hit.href}

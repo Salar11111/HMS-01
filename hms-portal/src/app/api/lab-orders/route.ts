@@ -1,7 +1,8 @@
 import { z } from "zod"
 import { prisma } from "@/lib/prisma"
-import { patientScope, scopedPatientFilter } from "@/server/assignment"
+import { assertPatientVisible, patientScope, scopedPatientFilter } from "@/server/assignment"
 import {
+  assertObjectId,
   recordAudit,
   requireRole,
   withErrorHandling,
@@ -9,7 +10,7 @@ import {
 
 const listSchema = z.object({
   status: z
-    .enum(["ORDERED", "IN_PROGRESS", "COMPLETED", "CANCELLED"])
+    .enum(["ORDERED", "COLLECTED", "IN_PROGRESS", "COMPLETED", "CANCELLED"])
     .optional(),
   take: z.coerce.number().int().min(1).max(200).default(100),
 })
@@ -80,6 +81,20 @@ export const POST = withErrorHandling(async (request: Request) => {
     )
   }
 
+  assertObjectId(body.patientId, "patient id")
+  assertPatientVisible(await patientScope(actor), body.patientId)
+
+  if (body.appointmentId) {
+    assertObjectId(body.appointmentId, "appointment id")
+    const appointment = await prisma.appointment.findUnique({
+      where: { id: body.appointmentId },
+      select: { patientId: true, doctorId: true },
+    })
+    if (!appointment || appointment.patientId !== body.patientId || appointment.doctorId !== actor.doctorId) {
+      return Response.json({ error: "That appointment is not on your panel" }, { status: 403 })
+    }
+  }
+
   const order = await prisma.labOrder.create({
     data: {
       patientId: body.patientId,
@@ -106,10 +121,15 @@ export const PUT = withErrorHandling(async (request: Request) => {
   const body = resultsSchema.parse(await request.json())
 
   const ids = body.items.map(i => i.id)
+  for (const id of ids) assertObjectId(id, "lab item id")
 
   const existing = await prisma.labOrderItem.findMany({
     where: { id: { in: ids } },
-    select: { id: true, orderId: true, order: { select: { status: true } } },
+    select: {
+      id: true,
+      orderId: true,
+      order: { select: { status: true, patientId: true, doctorId: true } },
+    },
   })
 
   if (existing.length !== ids.length) {
@@ -124,6 +144,11 @@ export const PUT = withErrorHandling(async (request: Request) => {
       { error: "Results cannot be entered for a cancelled order" },
       { status: 409 }
     )
+  }
+
+  const scope = await patientScope(actor)
+  for (const row of existing) {
+    assertPatientVisible(scope, row.order.patientId)
   }
 
   const result = await prisma.$transaction(async (tx) => {
@@ -150,29 +175,28 @@ export const PUT = withErrorHandling(async (request: Request) => {
   })
 
   const critical = body.items.filter(i => i.flag === "CRITICAL")
+  const orderIdByItem = new Map(existing.map(row => [row.id, row.orderId]))
 
   if (critical.length) {
-    const order = await prisma.labOrder.findFirst({
-      where: { id: result[0] },
+    const orders = await prisma.labOrder.findMany({
+      where: { id: { in: result } },
       select: {
-        doctorId: true,
+        id: true,
+        doctor: { select: { userId: true } },
         patient: { select: { user: { select: { name: true } } } },
       },
     })
 
-    const doctorUser = order
-      ? await prisma.doctor.findUnique({
-          where: { id: order.doctorId },
-          select: { userId: true },
-        })
-      : null
-
-    if (order && doctorUser) {
+    for (const order of orders) {
+      const values = critical
+        .filter(item => orderIdByItem.get(item.id) === order.id)
+        .map(item => item.result)
+      if (!values.length) continue
       await prisma.notification.create({
         data: {
-          userId: doctorUser.userId,
+          userId: order.doctor.userId,
           title: `Critical lab result: ${order.patient.user.name}`,
-          body: critical.map(c => c.result).join(", "),
+          body: values.join(", "),
           link: "/portal/doctor/ehr",
         },
       })

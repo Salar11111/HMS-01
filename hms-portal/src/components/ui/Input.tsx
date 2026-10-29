@@ -8,10 +8,11 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   error?: string
   hint?: string
   icon?: ReactNode
+  endAdornment?: ReactNode
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ className, label, error, hint, icon, id, ...props }, ref) => {
+  ({ className, label, error, hint, icon, endAdornment, id, style, ...props }, ref) => {
     const inputId = id || label?.toLowerCase().replace(/\s+/g, "-")
     
     return (
@@ -23,7 +24,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         )}
         <div className="relative">
           {icon && (
-            <div className="absolute left-4 top-[38px] text-clay-500 pointer-events-none flex items-center justify-center">
+            <div className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-clay-500">
               {icon}
             </div>
           )}
@@ -33,13 +34,24 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             className={cn(
               "clay-input",
               icon && "pl-12",
+              endAdornment && "pr-12",
               error && "border-red-300 focus:ring-red-400",
               className
             )}
             aria-invalid={error ? "true" : "false"}
             aria-describedby={error ? `${inputId}-error` : hint ? `${inputId}-hint` : undefined}
+            style={{
+              ...style,
+              ...(icon ? { paddingLeft: "3rem" } : {}),
+              ...(endAdornment ? { paddingRight: "3rem" } : {}),
+            }}
             {...props}
           />
+          {endAdornment && (
+            <div className="absolute inset-y-0 right-3 flex items-center">
+              {endAdornment}
+            </div>
+          )}
         </div>
         {error && (
           <p id={`${inputId}-error`} className="mt-1.5 text-sm text-red-600" role="alert">
