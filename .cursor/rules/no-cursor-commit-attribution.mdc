@@ -1,0 +1,10 @@
+---
+description: Never attribute git commits or PRs to Cursor
+alwaysApply: true
+---
+
+# No Cursor commit attribution
+
+- Never add `Co-authored-by: Cursor` or `Made-with: Cursor` to commit messages or PR bodies.
+- If a commit message gains those trailers automatically, amend or rewrite the message to remove them before pushing.
+- Prefer the user's git identity only as author/committer.
