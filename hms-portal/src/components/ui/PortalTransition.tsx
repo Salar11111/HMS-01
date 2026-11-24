@@ -2,24 +2,20 @@
 
 import { useEffect } from "react"
 import { motion, AnimatePresence, HTMLMotionProps } from "framer-motion"
-import { HeartPulse } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface PortalTransitionProps {
   isOpen: boolean
   onComplete: () => void
-  /** Total hold before navigation; keep in sync with the bloom duration. */
+  /** Short, calm hold before navigation. */
   durationMs?: number
 }
 
-/**
- * Expanding-circle doorway used when leaving the marketing site for the portal.
- * Matches the Verdant/MedFlow pattern: sage bloom, white ring ripple, brand mark.
- */
+/** A brief solid-surface transition when leaving the site for the portal. */
 export function PortalTransition({
   isOpen,
   onComplete,
-  durationMs = 1500,
+  durationMs = 260,
 }: PortalTransitionProps) {
   useEffect(() => {
     if (!isOpen) return
@@ -31,33 +27,13 @@ export function PortalTransition({
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          className="fixed inset-0 z-[700] flex items-center justify-center pointer-events-none"
+          className="pointer-events-none fixed inset-0 z-[700] bg-[var(--accent)]"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
           aria-hidden="true"
-        >
-          <motion.div
-            className="absolute rounded-full bg-gradient-to-br from-[#A8C4A0] to-[#7BA68C]"
-            initial={{ scale: 0, width: 10, height: 10 }}
-            animate={{ scale: 1, width: "300vmax", height: "300vmax" }}
-            transition={{ duration: 1.3, ease: [0.22, 1, 0.36, 1] }}
-          />
-          <motion.div
-            className="absolute rounded-full border-[6px] border-white/40"
-            initial={{ scale: 0, width: 80, height: 80, opacity: 0.9 }}
-            animate={{ scale: 8, width: 80, height: 80, opacity: 0 }}
-            transition={{ duration: 1.3, ease: "easeOut" }}
-          />
-          <motion.div
-            className="relative z-10 text-white"
-            initial={{ scale: 0.4, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.15, duration: 0.5 }}
-          >
-            <HeartPulse className="w-16 h-16" strokeWidth={1.5} />
-          </motion.div>
-        </motion.div>
+        />
       )}
     </AnimatePresence>
   )
@@ -73,10 +49,10 @@ export function PageTransition({ children, trigger }: PageTransitionProps) {
     <AnimatePresence mode="wait">
       <motion.div
         key={trigger ? "enter" : "exit"}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -20 }}
-        transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.16 }}
         className="w-full"
       >
         {children}
@@ -91,25 +67,8 @@ interface StaggerContainerProps {
   stagger?: number
 }
 
-export function StaggerContainer({ children, delay = 0, stagger = 0.1 }: StaggerContainerProps) {
-  return (
-    <motion.div
-      initial="hidden"
-      animate="show"
-      variants={{
-        hidden: { opacity: 0 },
-        show: {
-          opacity: 1,
-          transition: {
-            staggerChildren: stagger,
-            delayChildren: delay,
-          },
-        },
-      }}
-    >
-      {children}
-    </motion.div>
-  )
+export function StaggerContainer({ children }: StaggerContainerProps) {
+  return <div>{children}</div>
 }
 
 interface StaggerItemProps extends HTMLMotionProps<"div"> {
@@ -119,14 +78,7 @@ interface StaggerItemProps extends HTMLMotionProps<"div"> {
 
 export function StaggerItem({ children, className = "", ...props }: StaggerItemProps) {
   return (
-    <motion.div
-      {...props}
-      className={cn(className)}
-      variants={{
-        hidden: { opacity: 0, y: 20 },
-        show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.4, 0, 0.2, 1] } },
-      }}
-    >
+    <motion.div {...props} className={cn(className)}>
       {children}
     </motion.div>
   )
