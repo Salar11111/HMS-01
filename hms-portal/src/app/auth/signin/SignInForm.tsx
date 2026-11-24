@@ -114,9 +114,9 @@ export function SignInForm() {
   const demo = demoAccounts.find(account => account.role === selectedRole)
 
   return (
-    <div className="min-h-screen bg-[#FBF7F0] text-[#2F3E2E] flex items-center justify-center px-4 py-8 relative overflow-hidden">
+    <div className="min-h-screen bg-[#F5F8FA] text-[#16283A] flex items-center justify-center px-4 py-8 relative overflow-hidden">
       <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
-        <div className="absolute -top-24 left-1/2 h-64 w-64 -translate-x-1/2 rounded-full bg-[#7BA68C]/20 blur-3xl" />
+        <div className="absolute -top-24 left-1/2 h-64 w-64 -translate-x-1/2 rounded-full bg-[#1C7794]/20 blur-3xl" />
       </div>
 
       <div className="animate-rise relative z-10 w-full max-w-md">
@@ -124,7 +124,7 @@ export function SignInForm() {
           <CardContent className="space-y-5">
             <div className="flex items-center gap-3">
               <Link href="/" aria-label="Meridian Health home" className="shrink-0">
-                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-[#7BA68C] to-[#A8C4A0] text-white">
+                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-[#1C7794] to-[#8BC5D7] text-white">
                   <Heart className="h-5 w-5" />
                 </span>
               </Link>
@@ -132,12 +132,12 @@ export function SignInForm() {
                 <h1 className="text-xl font-semibold tracking-tight">
                   {mode === "portal" ? "Welcome back" : "Sign in"}
                 </h1>
-                <p className="text-sm text-[#5A6B57]">Meridian Health</p>
+                <p className="text-sm text-[#52687A]">Meridian Health</p>
               </div>
             </div>
 
             <div role="group" aria-label="Select your role" className="space-y-2">
-              <div className="grid grid-cols-4 gap-1 rounded-2xl bg-[#F3EDE2] p-1">
+              <div className="grid grid-cols-4 gap-1 rounded-2xl bg-[#EDF3F7] p-1">
                 {roles.map(role => {
                   const selected = selectedRole === role.value
                   return (
@@ -145,7 +145,7 @@ export function SignInForm() {
                       key={role.value}
                       type="button"
                       onClick={() => setSelectedRole(role.value)}
-                      className="relative rounded-xl px-1 py-2 text-[#5A6B57] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7BA68C]"
+                      className="relative rounded-xl px-1 py-2 text-[#52687A] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1C7794]"
                       aria-pressed={selected}
                     >
                       {selected && (
@@ -156,15 +156,15 @@ export function SignInForm() {
                           transition={{ type: "spring", stiffness: 460, damping: 34 }}
                         />
                       )}
-                      <span className={cn("relative z-10 flex flex-col items-center gap-1", selected && "text-[#2F3E2E]")}>
+                      <span className={cn("relative z-10 flex flex-col items-center gap-1", selected && "text-[#16283A]")}>
                         <role.icon className="h-4 w-4" />
-                        <span className="text-[11px] font-medium leading-none">{role.label}</span>
+                        <span className="text-[13px] font-medium leading-none">{role.label}</span>
                       </span>
                     </button>
                   )
                 })}
               </div>
-              <p key={activeRole.value} className="animate-swap text-center text-xs text-[#5A6B57]">
+              <p key={activeRole.value} className="animate-swap text-center text-xs text-[#52687A]">
                 {activeRole.desc}
               </p>
             </div>
@@ -228,7 +228,7 @@ export function SignInForm() {
                 type="button"
                 onClick={() => handleDemoLogin(demo)}
                 disabled={isLoading}
-                className="flex w-full items-center justify-center gap-2 rounded-full border border-[#E8E0D2] bg-white px-4 py-2 text-sm font-medium text-[#2F3E2E] transition-colors hover:bg-[#FBF7F0] disabled:opacity-50"
+                className="clay-button mt-1 w-full border border-[#DDE6EB] bg-white px-4 text-sm font-medium text-[#16283A] disabled:opacity-50"
               >
                 <User className="h-4 w-4" />
                 <span key={demo.email} className="animate-swap">
@@ -237,9 +237,9 @@ export function SignInForm() {
               </button>
             )}
 
-            <p className="text-center text-xs leading-5 text-[#5A6B57]">
+            <p className="text-center text-[13px] leading-5 text-[#52687A]">
               Demo records are fictional. Sign out on shared devices — we never ask for your password by email.{" "}
-              <Link href="/auth/register" className="font-medium text-[#3F6B4E] hover:underline">
+              <Link href="/auth/register" className="font-medium text-[#1C6F8F] hover:underline">
                 Create an account
               </Link>
             </p>
