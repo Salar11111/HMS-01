@@ -26,7 +26,7 @@ export const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonPr
     }
 
     const baseClass = cn(
-      "inline-flex items-center justify-center font-semibold rounded-full transition-all duration-200",
+      "clay-button inline-flex items-center justify-center font-semibold rounded-[var(--r-btn)] min-h-[44px]",
       "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100",
       variants[variant],
       sizes[size],
