@@ -84,8 +84,8 @@ export function PatientDashboardClient() {
         className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
       >
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-[#2F3E2E]">Hello, {firstName}</h1>
-          <p className="text-[#5A6B57] mt-1">Here&rsquo;s how you&rsquo;re doing today.</p>
+          <h1 className="text-3xl font-semibold tracking-tight text-[#16283A]">Hello, {firstName}</h1>
+          <p className="text-[#52687A] mt-1">Here&rsquo;s how you&rsquo;re doing today.</p>
         </div>
         <Button href="/portal/patient/appointments/new" className="ml-auto">
           <Plus className="w-4 h-4 mr-2" />
