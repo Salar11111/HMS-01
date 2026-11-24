@@ -96,10 +96,10 @@ export function PortalLayout({ children, role }: PortalLayoutProps) {
   const darkNav = role === "admin"
   const mark =
     role === "patient"
-      ? "bg-gradient-to-br from-[#C99A6A] to-[#E0B888] shadow-[#C99A6A]/30"
+      ? "bg-gradient-to-br from-[#1C6F8F] to-[#4FA6C1] shadow-[#1C6F8F]/30"
       : role === "admin"
-        ? "bg-gradient-to-br from-[#8B7AB8] to-[#B7A6D6] shadow-[#8B7AB8]/30"
-        : "bg-gradient-to-br from-[#7BA68C] to-[#A8C4A0] shadow-[#7BA68C]/30"
+        ? "bg-gradient-to-br from-[#123749] to-[#4F7691] shadow-[#123749]/30"
+        : "bg-gradient-to-br from-[#1C7794] to-[#8BC5D7] shadow-[#1C7794]/30"
 
   if (status === "loading" || !session) {
     return (
@@ -110,7 +110,7 @@ export function PortalLayout({ children, role }: PortalLayoutProps) {
   }
 
   return (
-    <div className="min-h-screen bg-[#FBF7F0] text-[#2F3E2E] flex">
+    <div className="min-h-screen bg-[#F5F8FA] text-[#16283A] flex">
       <AnimatePresence>
         {sidebarOpen && (
           <motion.div
@@ -127,7 +127,7 @@ export function PortalLayout({ children, role }: PortalLayoutProps) {
       <aside
         className={cn(
           "fixed lg:static inset-y-0 left-0 z-50 w-64",
-          darkNav ? "bg-[#2F3E2E] text-white" : "bg-white border-r border-[#EAF0E6]",
+          darkNav ? "bg-[#16283A] text-white" : "bg-white border-r border-[#D9EDF3]",
           "transform transition-transform duration-300 ease-out",
           "flex flex-col",
           sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
@@ -136,24 +136,24 @@ export function PortalLayout({ children, role }: PortalLayoutProps) {
       >
         <div className={cn("flex items-center justify-between px-5 pt-6 pb-2", darkNav && "text-white")}>
           <Link href={`/portal/${role}`} className="flex items-center gap-3">
-            <span className={cn("w-10 h-10 rounded-2xl flex items-center justify-center text-white shadow-lg", mark)}>
+            <span className={cn("w-10 h-10 rounded-[var(--r-btn)] flex items-center justify-center text-white", mark)}>
               <config.icon className="w-5 h-5" />
             </span>
             <span className="leading-tight">
-              <span className={cn("block font-semibold text-sm", darkNav ? "text-white" : "text-[#2F3E2E]")}>
+              <span className={cn("block font-semibold text-sm", darkNav ? "text-white" : "text-[#16283A]")}>
                 Meridian Health
               </span>
-              <span className={cn("block text-xs font-medium", darkNav ? "text-white/60" : role === "patient" ? "text-[#C99A6A]" : "text-[#7BA68C]")}>
+              <span className={cn("block text-xs font-medium", darkNav ? "text-white/60" : role === "patient" ? "text-[#1C6F8F]" : "text-[#1C7794]")}>
                 {config.label}
               </span>
             </span>
           </Link>
           <button
-            className={cn("lg:hidden p-2 rounded-lg transition-colors", darkNav ? "hover:bg-white/10" : "hover:bg-[#F3EDE2]")}
+            className={cn("lg:hidden p-2 rounded-lg transition-colors", darkNav ? "hover:bg-white/10" : "hover:bg-[#EDF3F7]")}
             onClick={() => setSidebarOpen(false)}
             aria-label="Close navigation"
           >
-            <X className={cn("w-5 h-5", darkNav ? "text-white" : "text-[#5A6B57]")} />
+            <X className={cn("w-5 h-5", darkNav ? "text-white" : "text-[#52687A]")} />
           </button>
         </div>
 
@@ -168,15 +168,15 @@ export function PortalLayout({ children, role }: PortalLayoutProps) {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-medium transition-colors",
-                  "focus:outline-none focus:ring-2 focus:ring-[#7BA68C] focus:ring-offset-2",
+                  "flex items-center gap-3 px-4 py-3 rounded-[var(--r-md)] text-sm font-medium transition-colors",
+                  "focus:outline-none focus:ring-2 focus-visible:ring-[#1C7794] focus:ring-offset-2",
                   darkNav
                     ? isActive
                       ? "bg-white/15 text-white"
                       : "text-white/70 hover:bg-white/10 hover:text-white"
                     : isActive
-                      ? "bg-[#F3EDE2] text-[#2F3E2E]"
-                      : "text-[#5A6B57] hover:bg-[#F3EDE2]"
+                      ? "bg-[#EDF3F7] text-[#16283A]"
+                      : "text-[#52687A] hover:bg-[#EDF3F7]"
                 )}
                 aria-current={isActive ? "page" : undefined}
               >
@@ -187,13 +187,13 @@ export function PortalLayout({ children, role }: PortalLayoutProps) {
           })}
         </nav>
 
-        <div className={cn("p-4 border-t", darkNav ? "border-white/10" : "border-[#EAF0E6]")}>
+        <div className={cn("p-4 border-t", darkNav ? "border-white/10" : "border-[#D9EDF3]")}>
           <button
             type="button"
             onClick={() => signOut({ callbackUrl: "/" })}
             className={cn(
-              "w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm transition-colors",
-              darkNav ? "text-white/70 hover:bg-white/10" : "text-[#5A6B57] hover:bg-[#F3EDE2]"
+              "w-full flex items-center gap-3 px-4 py-2.5 rounded-[var(--r-md)] text-sm transition-colors",
+              darkNav ? "text-white/70 hover:bg-white/10" : "text-[#52687A] hover:bg-[#EDF3F7]"
             )}
           >
             <LogOut className="w-4 h-4" />
@@ -203,14 +203,14 @@ export function PortalLayout({ children, role }: PortalLayoutProps) {
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0 lg:ml-0">
-        <header className="sticky top-0 z-30 bg-[#FBF7F0]/80 backdrop-blur-md">
+        <header className="sticky top-0 z-30 border-b border-[#DCE7EE] bg-white">
           <div className="flex items-center justify-between h-16 px-4 lg:px-8">
             <button
-              className="lg:hidden p-2 rounded-xl hover:bg-[#F3EDE2] transition-colors"
+              className="lg:hidden p-2 rounded-xl hover:bg-[#EDF3F7] transition-colors"
               onClick={() => setSidebarOpen(true)}
               aria-label="Open navigation"
             >
-              <Menu className="w-6 h-6 text-[#5A6B57]" />
+              <Menu className="w-6 h-6 text-[#52687A]" />
             </button>
 
             <div className="flex-1 lg:flex-none" />
@@ -221,29 +221,29 @@ export function PortalLayout({ children, role }: PortalLayoutProps) {
               <div className="relative">
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="flex items-center gap-3 px-3 py-1.5 rounded-full bg-white shadow-sm hover:shadow transition-shadow"
+                  className="flex items-center gap-3 px-3 py-1.5 rounded-[var(--r-btn)] border border-[#DCE7EE] bg-white transition-colors hover:bg-[#EDF3F7]"
                   aria-expanded={userMenuOpen}
                   aria-haspopup="true"
                 >
-                  <div className="w-8 h-8 rounded-full bg-[#F3EDE2] flex items-center justify-center">
-                    <span className="text-sm font-semibold text-[#C99A6A]">{userInitials}</span>
+                  <div className="w-8 h-8 rounded-full bg-[#EDF3F7] flex items-center justify-center">
+                    <span className="text-sm font-semibold text-[#1C6F8F]">{userInitials}</span>
                   </div>
-                  <span className="hidden sm:block text-sm font-medium text-[#2F3E2E]">{userName}</span>
+                  <span className="hidden sm:block text-sm font-medium text-[#16283A]">{userName}</span>
                   <ChevronDown className="w-4 h-4 text-clay-500" />
                 </button>
 
                 <AnimatePresence>
                   {userMenuOpen && (
                     <motion.div
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-lg border border-[#EAF0E6] py-2 z-50"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="absolute right-0 mt-2 w-56 bg-white rounded-[var(--r-md)] border border-[#DCE7EE] shadow-card py-2 z-50"
                       role="menu"
                     >
                       <Link
                         href={`/portal/${role}/settings`}
-                        className="flex items-center gap-3 px-4 py-2 text-sm text-clay-700 hover:bg-cream-200"
+                        className="flex items-center gap-3 px-4 py-2 text-sm text-clay-700 hover:bg-cream-100"
                         role="menuitem"
                         onClick={() => setUserMenuOpen(false)}
                       >
@@ -253,7 +253,7 @@ export function PortalLayout({ children, role }: PortalLayoutProps) {
                       <hr className="my-2 border-cream-200" />
                       <button
                         onClick={() => signOut({ callbackUrl: "/" })}
-                        className="flex items-center gap-3 px-4 py-2 text-sm text-clay-700 hover:bg-cream-200 w-full text-left"
+                        className="flex items-center gap-3 px-4 py-2 text-sm text-clay-700 hover:bg-cream-100 w-full text-left"
                         role="menuitem"
                       >
                         <LogOut className="w-4 h-4" />
@@ -267,7 +267,7 @@ export function PortalLayout({ children, role }: PortalLayoutProps) {
           </div>
         </header>
 
-        <main className="flex-1 px-4 lg:px-10 pb-10 overflow-auto">
+        <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-5 lg:px-8 lg:py-8 overflow-auto">
           {children}
         </main>
       </div>
