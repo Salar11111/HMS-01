@@ -1,41 +1,93 @@
 @import "tailwindcss";
 
+/* ---------------------------------------------------------------------------
+   Meridian Health — shared clinical design system
+   One token layer, one button style, one card recipe, calm blue/teal accent.
+   --------------------------------------------------------------------------- */
 :root {
-  --background: #fbf7f0;
-  --foreground: #2f3e2e;
-  --cream-50: #fbf7f0;
-  --cream-100: #f7f3ec;
-  --cream-200: #eaf0e6;
-  --cream-300: #d8e5d2;
-  --cream-400: #c5d4bc;
-  --cream-500: #a8c4a0;
-  --cream-600: #7ba68c;
-  --cream-700: #5c8a70;
-  --cream-800: #3d523b;
-  --cream-900: #2f3e2e;
-  --sage-50: #f4f7f2;
-  --sage-100: #eaf0e6;
-  --sage-200: #d8e5d2;
-  --sage-300: #c5d4bc;
-  --sage-400: #a8c4a0;
-  --sage-500: #7ba68c;
-  --sage-600: #5c8a70;
-  --sage-700: #3d523b;
-  --sage-800: #2f3e2e;
-  --sage-900: #243026;
-  --clay-50: #fbf7f0;
-  --clay-100: #f3ede2;
-  --clay-200: #e8e0d2;
-  --clay-300: #d4c8b4;
-  --clay-400: #8a9a84;
-  --clay-500: #5a6b57;
-  --clay-600: #5a6b57;
-  --clay-700: #3d523b;
-  --clay-800: #2f3e2e;
-  --clay-900: #2f3e2e;
-  --accent-coral: #c97b6a;
-  --accent-teal: #5c8a70;
-  --accent-gold: #c99a6a;
+  /* Spacing scale */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+  --s-8: 64px;
+  --s-9: 96px;
+
+  /* Radii and motion */
+  --r-sm: 6px;
+  --r-md: 12px;
+  --r-lg: 20px;
+  --r-btn: 8px;
+  --dur: 160ms;
+  --ease: cubic-bezier(.2, .7, .3, 1);
+
+  /* Semantic tokens */
+  --ink: #16283a;
+  --muted: #52687a;
+  --line: rgba(22, 40, 58, .12);
+  --bg: #f5f8fa;
+  --surface: #ffffff;
+  --accent: #1c7794;
+  --accent-hover: #175f79;
+  --focus: 2px solid var(--accent);
+  --success: #1c7a5b;
+  --warning: #95620f;
+  --danger: #b4473f;
+  --info: #1c7794;
+
+  /* Legacy palette names kept for existing utility classes, remapped to the
+     clinical blue/teal system so no markup has to change. */
+  --background: var(--bg);
+  --foreground: var(--ink);
+  --cream-50: #f5f8fa;
+  --cream-100: #edf3f7;
+  --cream-200: #dce7ee;
+  --cream-300: #c2d4e0;
+  --cream-400: #9bb6c8;
+  --cream-500: #6f91a8;
+  --cream-600: #4f7691;
+  --cream-700: #375b75;
+  --cream-800: #244058;
+  --cream-900: #16283a;
+  --sage-50: #eef7fa;
+  --sage-100: #d9edf3;
+  --sage-200: #b9dde8;
+  --sage-300: #8bc5d7;
+  --sage-400: #4fa6c1;
+  --sage-500: #2689a8;
+  --sage-600: #1c6f8f;
+  --sage-700: #175a76;
+  --sage-800: #15455e;
+  --sage-900: #123749;
+  --clay-50: #f7f9fa;
+  --clay-100: #eef2f5;
+  --clay-200: #dde6eb;
+  --clay-300: #c3d1da;
+  --clay-400: #94a9b7;
+  --clay-500: #6b8495;
+  --clay-600: #4f6a7c;
+  --clay-700: #375366;
+  --clay-800: #243d4f;
+  --clay-900: #16283a;
+  --accent-coral: #b4473f;
+  --accent-teal: #1c7794;
+  --accent-gold: #95620f;
+
+  --shadow-card: 0 1px 2px rgba(22, 40, 58, .05);
+  --shadow-raised: 0 4px 14px rgba(22, 40, 58, .07);
+  --radius-sm: var(--r-sm);
+  --radius-md: var(--r-md);
+  --radius-lg: var(--r-lg);
+  --radius-xl: var(--r-lg);
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
+  --transition-fast: var(--dur) var(--ease);
+  --transition-normal: 240ms var(--ease);
+  --transition-slow: 320ms var(--ease);
+  --transition-portal: 240ms var(--ease);
 }
 
 @theme inline {
@@ -74,221 +126,212 @@
   --color-accent-coral: var(--accent-coral);
   --color-accent-teal: var(--accent-teal);
   --color-accent-gold: var(--accent-gold);
-  --font-sans: var(--font-inter);
-  --font-display: var(--font-inter);
-  --shadow-clay-sm: 4px 4px 8px rgba(139, 128, 112, 0.15), -4px -4px 8px rgba(255, 255, 255, 0.8);
-  --shadow-clay-md: 8px 8px 16px rgba(139, 128, 112, 0.15), -8px -8px 16px rgba(255, 255, 255, 0.8);
-  --shadow-clay-lg: 16px 16px 32px rgba(139, 128, 112, 0.15), -16px -16px 32px rgba(255, 255, 255, 0.8);
-  --shadow-clay-inset: inset 4px 4px 8px rgba(139, 128, 112, 0.15), inset -4px -4px 8px rgba(255, 255, 255, 0.8);
-  --shadow-soft-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
-  --shadow-soft-md: 0 4px 16px rgba(0, 0, 0, 0.08);
-  --shadow-soft-lg: 0 8px 32px rgba(0, 0, 0, 0.1);
-  --radius-sm: 0.5rem;
-  --radius-md: 0.75rem;
-  --radius-lg: 1rem;
-  --radius-xl: 1.5rem;
-  --radius-2xl: 2rem;
-  --radius-full: 9999px;
-  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-portal: 800ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-display: var(--font-inter), system-ui, sans-serif;
+  --radius-sm: var(--r-sm);
+  --radius-md: var(--r-md);
+  --radius-lg: var(--r-lg);
+  --radius-xl: var(--r-lg);
+  --shadow-soft-sm: var(--shadow-card);
+  --shadow-soft-md: var(--shadow-raised);
 }
 
 @layer base {
   * {
-    border-color: var(--cream-200);
-  }
-  body {
-    background-color: var(--cream-50);
-    color: var(--clay-900);
-    font-family: var(--font-sans), system-ui, sans-serif;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    border-color: var(--line);
   }
   html {
     scroll-behavior: smooth;
   }
+  body {
+    background-color: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  h1, h2, h3 {
+    text-wrap: balance;
+  }
 }
 
-/* Soft cards, matching the Verdant Health surface */
+/* One consistent recipe for cards and linked surfaces. */
 .clay-card {
-  background-color: #ffffff;
-  border-radius: 1.5rem;
-  border: 1px solid #eaf0e6;
-  box-shadow: 0 10px 30px rgba(47, 62, 46, 0.05);
-  transition: box-shadow 300ms ease, transform 300ms ease;
+  background-color: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-card);
+  transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease), border-color var(--dur) var(--ease);
 }
 .clay-card:hover {
-  box-shadow: 0 16px 40px rgba(47, 62, 46, 0.08);
+  box-shadow: var(--shadow-raised);
+}
+a.clay-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--sage-300);
 }
 
 .clay-card-inset {
-  background-color: var(--cream-50);
-  border-radius: 1.5rem;
-  border: 1px solid #eaf0e6;
+  background-color: var(--cream-100);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
 }
 
+/* One button style: filled primary, quiet secondary, ghost; 44px minimum. */
 .clay-button {
-  background-color: #ffffff;
-  border-radius: 9999px;
-  box-shadow: 0 1px 2px rgba(47, 62, 46, 0.06);
-  transition: all 200ms ease;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  min-height: 44px;
+  border-radius: var(--r-btn);
+  border: 1px solid transparent;
   font-weight: 600;
+  line-height: 1.2;
+  transition: transform var(--dur) var(--ease), background-color var(--dur) var(--ease), border-color var(--dur) var(--ease), color var(--dur) var(--ease);
 }
 .clay-button:hover {
-  background-color: var(--cream-100);
+  transform: translateY(-2px);
 }
 .clay-button:active {
-  transform: scale(0.98);
+  transform: translateY(0) scale(.99);
 }
-.clay-button:focus {
-  outline: none;
-  box-shadow: var(--shadow-clay-sm), 0 0 0 2px var(--sage-400), 0 0 0 4px var(--cream-50);
+.clay-button:focus-visible {
+  outline: var(--focus);
+  outline-offset: 2px;
 }
-
 .clay-button-primary {
-  background-color: #2f3e2e;
+  background-color: var(--accent);
   color: #ffffff;
-  box-shadow: 0 8px 20px rgba(47, 62, 46, 0.18);
 }
 .clay-button-primary:hover {
-  background-color: #3d523b;
+  background-color: var(--accent-hover);
 }
 .clay-button-primary:active {
-  background-color: #243026;
+  background-color: var(--sage-800);
 }
-
 .clay-button-secondary {
-  background-color: #eaf0e6;
-  color: #2f3e2e;
+  background-color: var(--cream-100);
+  color: var(--ink);
+  border-color: var(--line);
 }
 .clay-button-secondary:hover {
-  background-color: #d8e5d2;
+  background-color: var(--cream-200);
 }
-
 .clay-button-ghost {
   background-color: transparent;
-  box-shadow: none;
+  color: var(--muted);
 }
 .clay-button-ghost:hover {
-  background-color: var(--cream-200);
-  box-shadow: var(--shadow-clay-sm);
+  background-color: var(--cream-100);
+  color: var(--ink);
 }
 
+/* Inputs: legible, calm, accessible. */
 .clay-input {
   width: 100%;
-  background-color: #ffffff;
-  border-radius: 1rem;
-  border: 1px solid #e8e0d2;
-  padding: 0.75rem 1rem;
-  color: var(--clay-900);
-  transition: all 200ms ease;
+  min-height: 44px;
+  background-color: var(--surface);
+  border-radius: var(--r-btn);
+  border: 1px solid var(--clay-300);
+  padding: var(--s-3) var(--s-4);
+  color: var(--ink);
+  font-size: 16px;
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
 }
 .clay-input::placeholder {
   color: var(--clay-500);
 }
+.clay-input:hover {
+  border-color: var(--clay-400);
+}
 .clay-input:focus {
   outline: none;
-  border-color: #7ba68c;
-  box-shadow: 0 0 0 3px rgba(123, 166, 140, 0.25);
-}
-.clay-input:hover {
-  border-color: #c5d4bc;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(28, 119, 148, .14);
 }
 
 .clay-badge {
   display: inline-flex;
   align-items: center;
-  padding: 0.25rem 0.75rem;
-  border-radius: 9999px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  transition: color 200ms ease;
+  border-radius: var(--radius-full);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
 }
-
 .badge-sage {
   background-color: var(--sage-100);
   color: var(--sage-800);
 }
-
 .badge-coral {
-  background-color: color-mix(in srgb, var(--accent-coral) 15%, transparent);
-  color: var(--accent-coral);
+  background-color: color-mix(in srgb, var(--danger) 14%, transparent);
+  color: var(--danger);
 }
-
 .badge-gold {
-  background-color: color-mix(in srgb, var(--accent-gold) 15%, transparent);
-  color: var(--accent-gold);
+  background-color: color-mix(in srgb, var(--warning) 16%, transparent);
+  color: #7d520a;
 }
-
 .badge-clay {
   background-color: var(--clay-100);
   color: var(--clay-700);
 }
 
-.portal-circle {
-  position: fixed;
-  inset: 0;
-  background-color: var(--sage-500);
-  border-radius: 9999px;
-  transform-origin: center;
-  pointer-events: none;
-  animation: portal-expand var(--transition-portal) forwards;
+/* Legibility floor: no UI text below 13px. */
+.text-xs {
+  font-size: 13px;
 }
 
-@keyframes portal-expand {
-  0% { transform: scale(0); opacity: 1; }
-  50% { opacity: 1; }
-  100% { transform: scale(100); opacity: 0; }
+/* Accessible focus for every interactive element. */
+:where(a, button, input, textarea, select, summary, [tabindex]):focus-visible {
+  outline: var(--focus);
+  outline-offset: 2px;
+}
+
+/* Highly legible data tables. */
+table th {
+  color: var(--muted);
+  letter-spacing: .06em;
+}
+table tbody tr {
+  transition: background-color var(--dur) var(--ease);
+}
+table tbody tr:hover {
+  background-color: var(--cream-100);
 }
 
 .text-balance {
   text-wrap: balance;
 }
 
+/* Calm, short transitions only — no scroll reveals or parallax. */
 .animate-fade-in {
-  animation: fadeIn var(--transition-normal) ease-out forwards;
+  animation: fadeIn var(--dur) var(--ease) both;
 }
-
-.animate-slide-up {
-  animation: slideUp var(--transition-slow) ease-out forwards;
+.animate-rise,
+.animate-swap {
+  animation: none;
 }
-
-.animate-scale-in {
-  animation: scaleIn var(--transition-fast) ease-out forwards;
-}
-
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
 }
 
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+@media (max-width: 768px) {
+  .clay-card,
+  .clay-card-inset {
+    border-radius: var(--r-md);
+  }
 }
 
-@keyframes scaleIn {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
-}
-
-@keyframes riseIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.animate-rise {
-  animation: riseIn 0.35s ease-out both;
-}
-
-.animate-swap {
-  animation: riseIn 0.18s ease-out;
+@media (max-width: 390px) {
+  .clay-button {
+    width: 100%;
+  }
+  nav .clay-button {
+    width: auto;
+    flex-shrink: 0;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -296,5 +339,11 @@
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .clay-button:hover,
+  .clay-button:active,
+  a.clay-card:hover {
+    transform: none !important;
   }
 }
