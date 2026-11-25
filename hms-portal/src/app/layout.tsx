@@ -22,6 +22,11 @@ export const metadata: Metadata = {
   description: "A premier multi-department hospital providing empathetic, patient-centered care. Schedule appointments, access health records, and connect with your care team.",
   keywords: ["hospital", "healthcare", "medical", "appointments", "patient portal", "EHR"],
   authors: [{ name: "Meridian Health" }],
+  icons: {
+    icon: "/favicon.svg",
+    shortcut: "/favicon.svg",
+    apple: "/favicon.svg",
+  },
   openGraph: {
     title: "Meridian Health — Compassionate Care, Advanced Medicine",
     description: "Experience healthcare designed around you. Premium facilities, expert physicians, and seamless digital access.",
