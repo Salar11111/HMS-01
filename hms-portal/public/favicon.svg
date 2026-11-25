@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Meridian Health">
+  <rect width="64" height="64" rx="14" fill="#1C7794"/>
+  <path d="M32 52C32 52 11 39.5 11 25.8 11 19.8 15.7 15 21.6 15c4 0 7.6 2.1 10.4 5.5C34.8 17.1 38.4 15 42.4 15 48.3 15 53 19.8 53 25.8 53 39.5 32 52 32 52Z" fill="#FFFFFF"/>
+  <path d="M29.5 24h5v5.5H40v5h-5.5V40h-5v-5.5H24v-5h5.5V24Z" fill="#1C7794"/>
+</svg>
