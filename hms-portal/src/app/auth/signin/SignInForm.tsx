@@ -239,7 +239,7 @@ export function SignInForm() {
 
             <p className="text-center text-[13px] leading-5 text-[#52687A]">
               Demo records are fictional. Sign out on shared devices — we never ask for your password by email.{" "}
-              <Link href="/auth/register" className="font-medium text-[#1C6F8F] hover:underline">
+              <Link href="/auth/register" prefetch={false} className="font-medium text-[#1C6F8F] hover:underline">
                 Create an account
               </Link>
             </p>
