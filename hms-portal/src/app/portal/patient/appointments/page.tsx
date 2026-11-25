@@ -29,6 +29,7 @@ function PatientAppointmentsContent() {
   const focusId = params.get("appointmentId")
   const { data, loading, error, refresh } = usePatientPortal()
   const [filter, setFilter] = useState<"upcoming" | "past">("upcoming")
+  const [status, setStatus] = useState<"ALL" | Appointment["status"]>("ALL")
   const [doctorId, setDoctorId] = useState("")
   const [when, setWhen] = useState("")
   const [reason, setReason] = useState("")
@@ -44,7 +45,8 @@ function PatientAppointmentsContent() {
 
   const rows = data.appointments.filter(appointment => {
     if (focusId) return appointment.id === focusId
-    return filter === "upcoming" ? appointment.upcoming : !appointment.upcoming
+    const inScope = filter === "upcoming" ? appointment.upcoming : !appointment.upcoming
+    return inScope && (status === "ALL" || appointment.status === status)
   })
   const upcoming = data.appointments.filter(a => a.upcoming).length
   const past = data.appointments.filter(a => !a.upcoming).length
@@ -120,13 +122,13 @@ function PatientAppointmentsContent() {
           <StatCard label="Confirmed" value={String(confirmed)} icon={Calendar} accent="sage" />
           <StatCard label="Past visits" value={String(past)} icon={Calendar} accent="clay" />
         </div>
-        <Card padding="md">
+        <Card padding="md" id="book-visit">
           <CardHeader className="px-0"><CardTitle>Book a visit</CardTitle></CardHeader>
           <CardContent className="px-0">
             <form onSubmit={event => void book(event)} className="grid sm:grid-cols-2 gap-4">
               <label className="text-sm font-medium text-clay-700">
                 Physician
-                <select className="clay-input mt-1.5" value={doctorId} onChange={event => setDoctorId(event.target.value)} required>
+                <select id="physician-select" className="clay-input mt-1.5" value={doctorId} onChange={event => setDoctorId(event.target.value)} required>
                   <option value="">Select a physician</option>
                   {data.physicians.map(doctor => (
                     <option key={doctor.id} value={doctor.id}>
@@ -145,15 +147,51 @@ function PatientAppointmentsContent() {
           </CardContent>
         </Card>
         <Card padding="md">
-          <div className="flex flex-wrap gap-2 mb-4">
+          <div className="flex flex-wrap items-end gap-2 mb-4">
             <Button variant={filter === "upcoming" ? "primary" : "secondary"} size="sm" onClick={() => setFilter("upcoming")}>Upcoming</Button>
             <Button variant={filter === "past" ? "primary" : "secondary"} size="sm" onClick={() => setFilter("past")}>Past</Button>
+            <label className="ml-auto text-xs font-medium text-clay-600">
+              Status
+              <select
+                aria-label="Filter appointments by status"
+                className="clay-input mt-1 block text-sm"
+                value={status}
+                onChange={event => setStatus(event.target.value as "ALL" | Appointment["status"])}
+              >
+                <option value="ALL">All statuses</option>
+                <option value="SCHEDULED">Scheduled</option>
+                <option value="CONFIRMED">Confirmed</option>
+                <option value="COMPLETED">Completed</option>
+                <option value="CANCELLED">Cancelled</option>
+                <option value="NO_SHOW">No show</option>
+              </select>
+            </label>
           </div>
           <CardHeader className="px-0">
             <CardTitle>{focusId ? "Selected visit" : filter === "upcoming" ? "Upcoming visits" : "Past visits"}</CardTitle>
           </CardHeader>
           <CardContent className="px-0">
-            <DataTable columns={columns} rows={rows} rowKey={a => a.id} empty="No visits in this list." />
+            {rows.length === 0 ? (
+              <div className="p-8 text-center space-y-3">
+                <p className="text-sm text-clay-600">
+                  {focusId ? "This visit is no longer in your record." : `No ${filter} visits with this status.`}
+                </p>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => {
+                    setFilter("upcoming")
+                    setStatus("ALL")
+                    document.getElementById("book-visit")?.scrollIntoView({ behavior: "smooth", block: "center" })
+                    document.getElementById("physician-select")?.focus()
+                  }}
+                >
+                  Book a visit
+                </Button>
+              </div>
+            ) : (
+              <DataTable columns={columns} rows={rows} rowKey={a => a.id} />
+            )}
           </CardContent>
         </Card>
       </div>
